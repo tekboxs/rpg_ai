@@ -95,15 +95,19 @@ class RPGGameServer:
         player = None
         
         try:
+            # Set socket options for better handling
+            conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            
             # Get player name
             player_name = self._get_player_name(conn)
             if not player_name:
+                logger.warning(f"Failed to get player name from {addr}")
                 return
             
             # Create player
             player = self.player_manager.add_player(player_name, conn)
             if not player:
-                conn.sendall("❌ Servidor cheio ou erro ao criar jogador.".encode())
+                conn.sendall("❌ Servidor cheio ou erro ao criar jogador.".encode('utf-8'))
                 return
             
             # Set initial location
@@ -126,21 +130,32 @@ class RPGGameServer:
                 "system"
             )
             
+            logger.info(f"Player {player.name} successfully connected from {addr}")
+            
             # Main client loop
             self._client_message_loop(player, conn)
             
         except Exception as e:
             logger.error(f"Error handling client {addr}: {e}")
+            # Try to send error message to client
+            try:
+                if conn:
+                    conn.sendall("❌ Erro interno do servidor.".encode('utf-8'))
+            except:
+                pass
         finally:
             if player:
                 self._handle_player_disconnect(player)
-            conn.close()
+            try:
+                conn.close()
+            except:
+                pass
     
     def _get_player_name(self, conn: socket.socket) -> Optional[str]:
         """Get player name from client"""
         try:
             # Send name request
-            conn.sendall("🎮 Digite seu nome de jogador: ".encode())
+            conn.sendall("🎮 Digite seu nome de jogador: ".encode('utf-8'))
             
             # Wait for response (sem timeout - ilimitado)
             timeout_value = config.get('server.player_name_timeout', 0)
@@ -148,17 +163,30 @@ class RPGGameServer:
             data = conn.recv(1024)
             
             if data:
-                name = data.decode().strip()
+                # Try multiple encoding strategies
+                name = None
+                encoding_attempts = ['utf-8', 'latin-1', 'cp1252', 'iso-8859-1']
+                
+                for encoding in encoding_attempts:
+                    try:
+                        name = data.decode(encoding).strip()
+                        break
+                    except UnicodeDecodeError:
+                        continue
+                
+                if name is None:
+                    # If all encodings fail, use error handling
+                    name = data.decode('utf-8', errors='ignore').strip()
                 if name and len(name) <= 20:
                     return name
                 else:
-                    conn.sendall("❌ Nome inválido. Deve ter entre 1 e 20 caracteres.".encode())
+                    conn.sendall("❌ Nome inválido. Deve ter entre 1 e 20 caracteres.".encode('utf-8'))
                     return None
             
             return None
             
         except socket.timeout:
-            conn.sendall("❌ Timeout ao aguardar nome.".encode())
+            conn.sendall("❌ Timeout ao aguardar nome.".encode('utf-8'))
             return None
         except Exception as e:
             logger.error(f"Error getting player name: {e}")
@@ -203,7 +231,25 @@ Divirta-se e boa aventura!
                 if not data:
                     break
                 
-                message = data.decode().strip()
+                # Try multiple encoding strategies for message decoding
+                message = None
+                encoding_attempts = ['utf-8', 'latin-1', 'cp1252', 'iso-8859-1']
+                
+                for encoding in encoding_attempts:
+                    try:
+                        message = data.decode(encoding).strip()
+                        break
+                    except UnicodeDecodeError:
+                        continue
+                
+                if message is None:
+                    # If all encodings fail, use error handling
+                    message = data.decode('utf-8', errors='ignore').strip()
+                if not message:
+                    continue
+                
+                # Clean the message of any invalid characters
+                message = ''.join(char for char in message if char.isprintable())
                 if not message:
                     continue
                 

@@ -73,20 +73,20 @@ class RPGGameClient:
             if not data:
                 return None
             
-            prompt = data.decode().strip()
+            prompt = data.decode('utf-8').strip()
             print(f"\n{prompt}")
             
             # Get player name from user
             while True:
                 name = input("> ").strip()
                 if name and len(name) <= 20:
-                    # Send name to server
-                    self.socket.sendall(name.encode())
+                    # Send name to server with explicit UTF-8 encoding
+                    self.socket.sendall(name.encode('utf-8'))
                     
                     # Wait for confirmation or error
                     response = self.socket.recv(1024)
                     if response:
-                        response_text = response.decode().strip()
+                        response_text = response.decode('utf-8').strip()
                         if "❌" in response_text:
                             print(response_text)
                             continue
@@ -144,7 +144,7 @@ class RPGGameClient:
             return False
         
         try:
-            self.socket.sendall(message.encode())
+            self.socket.sendall(message.encode('utf-8'))
             self.message_count += 1
             return True
         except Exception as e:
