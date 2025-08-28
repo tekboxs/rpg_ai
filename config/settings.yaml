@@ -5,7 +5,9 @@ server:
   host: "0.0.0.0"
   port: 5555
   max_players: 8
-  timeout: 600000
+  timeout: 0  # 0 = sem timeout (ilimitado), > 0 = timeout em segundos
+  connection_timeout: 0  # 0 = sem timeout (ilimitado), > 0 = timeout em segundos
+  player_name_timeout: 0  # 0 = sem timeout (ilimitado), > 0 = timeout em segundos
 
 # AI Settings
 ai:
@@ -15,10 +17,12 @@ ai:
   max_tokens: 600
   temperature: 0.8
   max_context_messages: 15
+  request_timeout: 0  # 0 = sem timeout (ilimitado), > 0 = timeout em segundos
+  connection_timeout: 0  # 0 = sem timeout (ilimitado), > 0 = timeout em segundos
 
 # Game Settings
 game:
-  session_timeout: 20000  # 20 minutes
+  session_timeout: 0  # 0 = sem timeout (ilimitado), > 0 = timeout em minutos
   max_history: 100
   auto_save_interval: 60  # seconds
   

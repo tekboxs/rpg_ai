@@ -142,8 +142,9 @@ class RPGGameServer:
             # Send name request
             conn.sendall("🎮 Digite seu nome de jogador: ".encode())
             
-            # Wait for response
-            conn.settimeout(30)  # 30 second timeout
+            # Wait for response (sem timeout - ilimitado)
+            timeout_value = config.get('server.player_name_timeout', 0)
+            conn.settimeout(timeout_value if timeout_value > 0 else None)
             data = conn.recv(1024)
             
             if data:
@@ -196,7 +197,7 @@ Divirta-se e boa aventura!
     
     def _client_message_loop(self, player: Player, conn: socket.socket):
         """Main loop for handling client messages"""
-        while self.is_running and player.is_active():
+        while self.is_running and player.is_active(config.get('game.session_timeout', 0)):
             try:
                 data = conn.recv(4096)
                 if not data:

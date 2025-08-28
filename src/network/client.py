@@ -35,7 +35,9 @@ class RPGGameClient:
             
             # Create socket and connect
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.socket.settimeout(10)  # 10 second connection timeout
+            from ..utils.config import config
+            timeout_value = config.get('server.connection_timeout', 0)
+            self.socket.settimeout(timeout_value if timeout_value > 0 else None)
             self.socket.connect((host, port))
             
             # Get player name from server

@@ -32,8 +32,12 @@ class Player:
         """Update last activity timestamp"""
         self.last_activity = datetime.now()
     
-    def is_active(self, timeout_minutes: int = 5) -> bool:
+    def is_active(self, timeout_minutes: int = None) -> bool:
         """Check if player is still active"""
+        # Se timeout_minutes for 0 ou None, jogador nunca expira
+        if timeout_minutes is None or timeout_minutes <= 0:
+            return True
+        
         delta = datetime.now() - self.last_activity
         return delta.total_seconds() < (timeout_minutes * 60)
     
@@ -125,7 +129,9 @@ class PlayerManager:
     
     def get_active_players(self) -> List[Player]:
         """Get list of currently active players"""
-        return [p for p in self.players.values() if p.is_active()]
+        from ..utils.config import config
+        timeout_minutes = config.get('game.session_timeout', 0)
+        return [p for p in self.players.values() if p.is_active(timeout_minutes)]
     
     def broadcast_message(self, message: str, exclude_player: Optional[Player] = None):
         """Send message to all players"""

@@ -179,7 +179,7 @@ REGRAS:
                     "max_tokens": self.max_tokens,
                     "temperature": self.temperature
                 },
-                timeout=30
+                timeout=config.get('ai.request_timeout', 0) or None  # 0 = sem timeout
             )
             
             if response.status_code == 200:
@@ -236,7 +236,7 @@ REGRAS:
                     "messages": [{"role": "user", "content": "test"}],
                     "max_tokens": 10
                 },
-                timeout=10
+                timeout=config.get('ai.connection_timeout', 0) or None  # 0 = sem timeout
             )
             return response.status_code == 200
         except:

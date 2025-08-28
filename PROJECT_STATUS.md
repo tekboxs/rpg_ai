@@ -96,13 +96,14 @@ rpg_ai/
 - ✅ Suporte a até 8 jogadores simultâneos
 - ✅ Broadcast de mensagens
 - ✅ Gerenciamento de sessões
-- ✅ Timeout automático de conexões
+- ✅ **Conexões ilimitadas sem timeout automático**
 
 ### Sistema de IA
 - ✅ Integração com K-Bold AI
 - ✅ Prompts especializados para RPG
 - ✅ Geração de narrativas dinâmicas
 - ✅ Respostas contextuais baseadas na história
+- ✅ **Timeouts ilimitados para respostas da IA**
 
 ### Persistência
 - ✅ Salvamento automático a cada 60 segundos
@@ -179,6 +180,7 @@ python test_system.py
 - Sistema de fallback para IA offline
 - Auto-save para evitar perda de dados
 - Validação de entrada de usuários
+- **Timeouts configuráveis e ilimitados** para IA e conexões
 
 ## 🔮 Próximos Passos Sugeridos
 
