@@ -96,6 +96,64 @@ class Config:
     @property
     def world_starting_scenario(self) -> str:
         return self.get('world.starting_scenario', 'Uma noite tempestuosa na taverna...')
+    
+    # Procedural Generation Properties
+    @property
+    def procedural_enabled(self) -> bool:
+        return self.get('procedural.enabled', True)
+    
+    @property
+    def max_locations_per_expansion(self) -> int:
+        return self.get('procedural.max_locations_per_expansion', 5)
+    
+    @property
+    def max_npcs_per_location(self) -> int:
+        return self.get('procedural.max_npcs_per_location', 4)
+    
+    @property
+    def location_name_max_length(self) -> int:
+        return self.get('procedural.location_name_max_length', 50)
+    
+    @property
+    def npc_name_max_length(self) -> int:
+        return self.get('procedural.npc_name_max_length', 30)
+    
+    @property
+    def generation_creativity(self) -> float:
+        return self.get('procedural.generation_creativity', 0.8)
+    
+    @property
+    def world_expansion_chance(self) -> float:
+        return self.get('procedural.world_expansion_chance', 0.3)
+    
+    # NPC Memory Properties
+    @property
+    def memory_enabled(self) -> bool:
+        return self.get('memory.enabled', True)
+    
+    @property
+    def max_memory_size(self) -> int:
+        return self.get('memory.max_memory_size', 100)
+    
+    @property
+    def memory_cleanup_interval(self) -> int:
+        return self.get('memory.memory_cleanup_interval', 24)
+    
+    @property
+    def emotional_state_tracking(self) -> bool:
+        return self.get('memory.emotional_state_tracking', True)
+    
+    @property
+    def relationship_development(self) -> bool:
+        return self.get('memory.relationship_development', True)
+    
+    @property
+    def topic_memory_enabled(self) -> bool:
+        return self.get('memory.topic_memory_enabled', True)
+    
+    @property
+    def player_interaction_history(self) -> bool:
+        return self.get('memory.player_interaction_history', True)
 
 # Global configuration instance
 config = Config()

@@ -9,6 +9,8 @@ from ..core.player import Player
 from ..core.world import World, Location, NPC
 from .ai_engine import AIEngine
 from .narrative import NarrativeEngine
+from .procedural_generator import ProceduralGenerator
+from .npc_memory import NPCMemoryManager
 from ..utils.logger import logger
 from ..utils.config import config
 import random
@@ -20,7 +22,9 @@ class GameMaster:
         self.game_state = game_state
         self.world = game_state.world
         self.ai_engine = AIEngine()
-        self.narrative_engine = NarrativeEngine(self.world)
+        self.narrative_engine = NarrativeEngine(self.world, self.ai_engine)
+        self.procedural_generator = ProceduralGenerator(self.ai_engine)
+        self.memory_manager = NPCMemoryManager()
         
         # Command patterns for different actions
         self.command_patterns = self._load_command_patterns()
@@ -31,7 +35,7 @@ class GameMaster:
         self.active_scenarios = []
         self.player_attention = {}  # Track what players are focused on
         
-        logger.info("Game Master initialized and ready")
+        logger.info("Enhanced Game Master initialized and ready")
     
     def _load_command_patterns(self) -> Dict[str, re.Pattern]:
         """Load regex patterns for command recognition"""
@@ -46,7 +50,9 @@ class GameMaster:
             'help': re.compile(r'\{ajuda\}(?:\s+(.+))?', re.IGNORECASE),
             'status': re.compile(r'\{status\}(?:\s+(.+))?', re.IGNORECASE),
             'save': re.compile(r'\{salvar\}(?:\s+(.+))?', re.IGNORECASE),
-            'load': re.compile(r'\{carregar\}(?:\s+(.+))?', re.IGNORECASE)
+            'load': re.compile(r'\{carregar\}(?:\s+(.+))?', re.IGNORECASE),
+            'expand': re.compile(r'\{expandir\}(?:\s+(.+))?', re.IGNORECASE),
+            'generate': re.compile(r'\{gerar\}(?:\s+(.+))?', re.IGNORECASE)
         }
     
     def process_player_action(self, player: Player, action: str) -> Optional[str]:
@@ -128,6 +134,16 @@ class GameMaster:
         match = self.command_patterns['load'].match(action)
         if match:
             return self._handle_load_command(player, match.group(1))
+        
+        # Check for expand command
+        match = self.command_patterns['expand'].match(action)
+        if match:
+            return self._handle_expand_command(player, match.group(1))
+        
+        # Check for generate command
+        match = self.command_patterns['generate'].match(action)
+        if match:
+            return self._handle_generate_command(player, match.group(1))
         
         return None
     
@@ -213,7 +229,7 @@ class GameMaster:
         return f"{movement_desc}\n\n{destination.get_description(include_details=True)}"
     
     def _handle_talk_command(self, player: Player, target: Optional[str]) -> str:
-        """Handle the talk command"""
+        """Handle the talk command with enhanced NPC memory"""
         if not target:
             return "⚠️ Especifique com quem falar. Use: {falar} <nome do NPC>"
         
@@ -237,11 +253,21 @@ class GameMaster:
             else:
                 return f"⚠️ Não há NPCs nesta localização para conversar."
         
-        # Create NPC object and generate dialogue
+        # Create NPC object and generate dialogue with memory
         npc = NPC(npc_data['name'], npc_data['role'], npc_data['description'])
-        context = self.game_state.get_context(last_n=5)
         
-        dialogue = self.narrative_engine.generate_npc_dialogue(npc, context, "falar")
+        # Get conversation context from memory
+        memory_context = self.memory_manager.get_npc_context_for_player(
+            npc.name, player.id, "conversa"
+        )
+        
+        # Generate dialogue considering memory
+        dialogue = self.narrative_engine.generate_npc_dialogue(
+            npc, 
+            f"Jogador {player.name} conversando com {npc.name}. {memory_context}", 
+            "conversa",
+            player.id
+        )
         
         # Add to game history
         self.game_state.add_to_history(f"{npc.name} ({npc.role})", dialogue, "npc")
@@ -270,7 +296,7 @@ class GameMaster:
             return "⚠️ Não foi possível gerar resposta de combate no momento."
     
     def _handle_quest_command(self, player: Player, action: Optional[str]) -> str:
-        """Handle the quest command"""
+        """Handle the quest command with procedural generation"""
         if not action:
             # Show available quests
             active_quests = self.game_state.active_quests
@@ -286,19 +312,90 @@ class GameMaster:
         
         # Handle specific quest actions
         if action.lower() in ['aceitar', 'pegar', 'iniciar']:
-            # Create a new quest for the player
-            quest_data = {
-                'title': 'Exploração da Cidade',
-                'description': 'Explore os arredores da cidade para descobrir novos locais e histórias.',
-                'type': 'exploration',
-                'reward': 'Experiência e conhecimento local',
-                'difficulty': 'fácil'
-            }
+            # Generate a new procedural quest
+            quest_data = self.narrative_engine.create_dynamic_quest()
             
             self.game_state.add_quest(quest_data)
-            return f"🎯 Nova missão aceita: {quest_data['title']}"
+            return f"🎯 Nova missão aceita: {quest_data['title']}\n\n{quest_data['description']}"
         
         return f"⚠️ Ação de missão '{action}' não reconhecida."
+    
+    def _handle_expand_command(self, player: Player, expansion_type: Optional[str]) -> str:
+        """Handle the expand command for procedural world expansion"""
+        if not expansion_type:
+            expansion_type = 'organic'
+        
+        if expansion_type not in ['organic', 'quest_driven', 'random']:
+            return "⚠️ Tipos de expansão válidos: organic, quest_driven, random"
+        
+        try:
+            # Expand the world procedurally
+            new_content = self.narrative_engine.expand_world_procedurally(
+                expansion_type=expansion_type,
+                num_locations=3
+            )
+            
+            if new_content:
+                location_names = [loc['name'] for loc in new_content if 'name' in loc]
+                response = f"🌍 Mundo expandido com {len(new_content)} novas localizações:\n"
+                response += "\n".join([f"📍 {name}" for name in location_names])
+                
+                # Add to game history
+                self.game_state.add_to_history("Sistema", response, "world_expansion")
+                
+                return response
+            else:
+                return "⚠️ Não foi possível expandir o mundo no momento."
+                
+        except Exception as e:
+            logger.error(f"Error expanding world: {e}")
+            return f"⚠️ Erro ao expandir mundo: {str(e)}"
+    
+    def _handle_generate_command(self, player: Player, target: Optional[str]) -> str:
+        """Handle the generate command for creating specific content"""
+        if not target:
+            return "⚠️ Especifique o que gerar. Use: {gerar} <localização|npc|missão>"
+        
+        try:
+            if target.lower() in ['localização', 'location']:
+                # Generate a random location
+                new_location = self.procedural_generator.generate_location()
+                
+                # Add to world
+                self.narrative_engine._add_generated_location_to_world(new_location)
+                
+                response = f"🏗️ Nova localização gerada: {new_location['name']}\n\n{new_location['description']}"
+                
+            elif target.lower() in ['npc', 'personagem']:
+                # Generate a random NPC
+                new_npc = self.procedural_generator.generate_npc()
+                
+                # Add to world
+                self.world.add_npc(NPC(
+                    new_npc['name'], 
+                    new_npc['role'], 
+                    new_npc['description']
+                ))
+                
+                response = f"👤 Novo NPC gerado: {new_npc['name']} ({new_npc['role']})\n\n{new_npc['description']}"
+                
+            elif target.lower() in ['missão', 'quest']:
+                # Generate a random quest
+                new_quest = self.narrative_engine.create_dynamic_quest()
+                
+                response = f"🎯 Nova missão gerada: {new_quest['title']}\n\n{new_quest['description']}"
+                
+            else:
+                return f"⚠️ Tipo de conteúdo '{target}' não reconhecido. Use: localização, npc, ou missão"
+            
+            # Add to game history
+            self.game_state.add_to_history("Sistema", response, "content_generation")
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error generating content: {e}")
+            return f"⚠️ Erro ao gerar conteúdo: {str(e)}"
     
     def _handle_inventory_command(self, player: Player, action: Optional[str]) -> str:
         """Handle the inventory command"""
@@ -307,7 +404,7 @@ class GameMaster:
         return "🎒 Seu inventário está vazio. Explore o mundo para encontrar itens!"
     
     def _handle_help_command(self, player: Player, topic: Optional[str]) -> str:
-        """Handle the help command"""
+        """Handle the help command with new features"""
         if not topic:
             help_text = """
 🎮 **COMANDOS DISPONÍVEIS:**
@@ -320,7 +417,7 @@ class GameMaster:
 - {mover} <direção> - Move para uma direção específica (norte, sul, leste, oeste)
 
 **Interação:**
-- {falar} <NPC> - Inicia conversa com um NPC específico
+- {falar} <NPC> - Inicia conversa com um NPC específico (com memória!)
 - {combate} <alvo> - Inicia uma sequência de combate
 
 **Sistema:**
@@ -331,10 +428,16 @@ class GameMaster:
 - {salvar} - Salva o estado do jogo
 - {carregar} - Carrega um estado salvo
 
+**Novos Recursos:**
+- {expandir} [tipo] - Expande o mundo proceduralmente
+- {gerar} <tipo> - Gera conteúdo específico (localização, NPC, missão)
+
 **Roleplay:**
 - Digite qualquer texto para falar ou agir no jogo
 
 💡 **DICA:** Use os comandos especiais para interagir com o sistema, mas principalmente use texto livre para criar sua história!
+
+🆕 **NOVO:** NPCs agora têm memória e personalidades únicas! Eles se lembram de conversas anteriores e respondem de forma mais natural.
             """.strip()
         else:
             help_text = f"ℹ️ Ajuda sobre '{topic}': Este recurso está em desenvolvimento."
@@ -342,12 +445,16 @@ class GameMaster:
         return help_text
     
     def _handle_status_command(self, player: Player, target: Optional[str]) -> str:
-        """Handle the status command"""
+        """Handle the status command with enhanced information"""
         if target and target.lower() != 'meu':
             return f"⚠️ Comando de status só funciona para seu próprio personagem."
         
         player_location = self.game_state.get_player_location(player.id)
         world_summary = self.game_state.get_world_summary()
+        
+        # Get procedural generation stats
+        proc_stats = self.procedural_generator.get_generation_stats()
+        memory_stats = self.memory_manager.get_memory_statistics()
         
         status_text = f"""
 👤 **STATUS DO JOGADOR:**
@@ -361,29 +468,62 @@ class GameMaster:
 **Hora do dia:** {world_summary['world_info']['time_of_day']}
 **Missões ativas:** {world_summary['active_quests']}
 **Jogadores ativos:** {world_summary['active_players']}
+
+🏗️ **GERAÇÃO PROCEDURAL:**
+**Localizações geradas:** {proc_stats['locations_generated']}
+**NPCs gerados:** {proc_stats['npcs_generated']}
+**Total de conteúdo:** {proc_stats['total_generated']}
+
+🧠 **SISTEMA DE MEMÓRIA:**
+**NPCs com memória:** {memory_stats['total_npcs_with_memory']}
+**Total de conversas:** {memory_stats['total_conversations']}
+**Jogadores únicos:** {memory_stats['total_unique_players']}
         """.strip()
         
         return status_text
     
     def _handle_save_command(self, player: Player, filename: Optional[str]) -> str:
-        """Handle the save command"""
+        """Handle the save command with memory data"""
         if not filename:
             filename = f"save_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         
         try:
+            # Save game state
             self.game_state.save_game_state(f"saves/{filename}")
-            return f"💾 Jogo salvo com sucesso como '{filename}'"
+            
+            # Save NPC memories
+            memory_data = self.memory_manager.export_all_memories()
+            memory_filename = f"saves/memory_{filename}"
+            
+            import json
+            with open(memory_filename, 'w', encoding='utf-8') as f:
+                json.dump(memory_data, f, indent=2, ensure_ascii=False)
+            
+            return f"💾 Jogo salvo com sucesso como '{filename}' (incluindo memórias dos NPCs)"
         except Exception as e:
             logger.error(f"Failed to save game: {e}")
             return f"⚠️ Erro ao salvar jogo: {str(e)}"
     
     def _handle_load_command(self, player: Player, filename: Optional[str]) -> str:
-        """Handle the load command"""
+        """Handle the load command with memory data"""
         if not filename:
             return "⚠️ Especifique o arquivo para carregar. Use: {carregar} <nome_do_arquivo>"
         
         try:
+            # Load game state
             self.game_state.load_game_state(f"saves/{filename}")
+            
+            # Load NPC memories
+            memory_filename = f"saves/memory_{filename}"
+            try:
+                import json
+                with open(memory_filename, 'r', encoding='utf-8') as f:
+                    memory_data = json.load(f)
+                
+                self.memory_manager.import_all_memories(memory_data)
+            except FileNotFoundError:
+                logger.warning(f"Memory file {memory_filename} not found, starting with empty memories")
+            
             return f"📂 Jogo carregado com sucesso de '{filename}'"
         except Exception as e:
             logger.error(f"Failed to load game: {e}")
@@ -398,7 +538,7 @@ class GameMaster:
     def create_dynamic_event(self, event_type: str = 'random') -> str:
         """Create a dynamic world event to keep the story interesting"""
         if event_type == 'random':
-            event_type = random.choice(['weather_change', 'npc_arrival', 'mystery', 'opportunity'])
+            event_type = random.choice(['weather_change', 'npc_arrival', 'mystery', 'opportunity', 'world_expansion'])
         
         if event_type == 'weather_change':
             new_weather = random.choice(['ensolarado', 'nublado', 'chuvoso', 'tempestuoso'])
@@ -412,20 +552,25 @@ class GameMaster:
                 location_name = random.choice(locations)
                 location = self.world.locations[location_name]
                 
-                # Create a new NPC
-                npc_names = ['Merlin', 'Aria', 'Thorne', 'Lyra', 'Gareth']
-                npc_roles = ['Viajante', 'Mercador', 'Aventureiro', 'Estudioso', 'Guardião']
+                # Generate a new NPC procedurally
+                new_npc = self.procedural_generator.generate_npc(
+                    location_context=location_name
+                )
                 
-                npc_name = random.choice(npc_names)
-                npc_role = random.choice(npc_roles)
+                location.add_npc(new_npc)
                 
-                location.add_npc({
-                    'name': npc_name,
-                    'role': npc_role,
-                    'description': f'Um {npc_role.lower()} que acabou de chegar.'
-                })
-                
-                return f"👤 {npc_name}, um {npc_role.lower()}, chegou a {location_name}!"
+                return f"👤 {new_npc['name']}, um {new_npc['role'].lower()}, chegou a {location_name}!"
+        
+        elif event_type == 'world_expansion':
+            # Expand the world procedurally
+            try:
+                new_content = self.narrative_engine.expand_world_procedurally('organic', 2)
+                if new_content:
+                    location_names = [loc['name'] for loc in new_content if 'name' in loc]
+                    return f"🌍 O mundo se expandiu! Novas localizações descobertas: {', '.join(location_names)}"
+            except Exception as e:
+                logger.error(f"Error in dynamic world expansion: {e}")
+                return "🌍 Algo interessante acontece no mundo..."
         
         elif event_type == 'mystery':
             return "🔍 Algo misterioso acontece no mundo... O que será?"
@@ -436,17 +581,19 @@ class GameMaster:
         return "🌍 Algo interessante acontece no mundo..."
     
     def get_game_master_status(self) -> Dict[str, Any]:
-        """Get current Game Master status"""
+        """Get current Game Master status with new systems"""
         return {
             'is_active': self.is_active,
             'last_activity': self.last_activity.isoformat(),
             'active_scenarios': len(self.active_scenarios),
             'ai_engine_status': self.ai_engine.test_connection(),
             'narrative_summary': self.narrative_engine.get_narrative_summary(),
-            'world_summary': self.game_state.get_world_summary()
+            'world_summary': self.game_state.get_world_summary(),
+            'procedural_stats': self.procedural_generator.get_generation_stats(),
+            'memory_stats': self.memory_manager.get_memory_statistics()
         }
     
     def shutdown(self):
         """Shutdown the Game Master"""
         self.is_active = False
-        logger.info("Game Master shutdown")
+        logger.info("Enhanced Game Master shutdown")

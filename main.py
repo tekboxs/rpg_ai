@@ -74,6 +74,15 @@ Exemplos de uso:
             print(f"   Modelo AI: {config.ai_model}")
             print()
             
+            # Show new system information
+            print("🆕 Novos Sistemas Ativados:")
+            print(f"   🏗️  Geração Procedural: {'✅' if config.procedural_enabled else '❌'}")
+            print(f"   🧠 Memória de NPCs: {'✅' if config.memory_enabled else '❌'}")
+            print(f"   🎨 Criatividade AI: {config.generation_creativity:.1f}")
+            print(f"   🌍 Expansão Mundial: {config.world_expansion_chance:.1f}")
+            print(f"   💾 Tamanho da Memória: {config.max_memory_size} conversas")
+            print()
+            
             start_server(args.host, args.port)
             
         elif args.mode == 'client':

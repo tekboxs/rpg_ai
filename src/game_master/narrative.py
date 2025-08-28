@@ -1,285 +1,486 @@
 """
-Narrative system for the Game Master
+Enhanced Narrative Engine for RPG AI
+Integrates with procedural generation and NPC memory systems
 """
-from typing import Dict, List, Optional, Any
-from datetime import datetime
+from typing import Dict, List, Optional, Any, Tuple
 import random
-from ..utils.logger import logger
+from datetime import datetime
 from ..core.world import World, Location, NPC
+from .ai_engine import AIEngine
+from .procedural_generator import ProceduralGenerator
+from .npc_memory import NPCMemoryManager
+from ..utils.logger import logger
 
 class NarrativeEngine:
-    """Handles narrative generation and story progression"""
+    """Enhanced narrative engine with procedural generation and memory"""
     
-    def __init__(self, world: World):
+    def __init__(self, world: World, ai_engine: AIEngine):
         self.world = world
-        self.story_arcs = []
-        self.active_plots = []
-        self.character_development = {}
-        self.atmosphere_markers = []
+        self.ai_engine = ai_engine
+        self.procedural_generator = ProceduralGenerator(ai_engine)
+        self.memory_manager = NPCMemoryManager()
         
-        # Narrative templates and patterns
-        self.narrative_patterns = self._load_narrative_patterns()
-        self.atmosphere_descriptions = self._load_atmosphere_descriptions()
+        # Narrative state tracking
+        self.narrative_themes = []
+        self.active_storylines = []
+        self.world_events = []
         
-        logger.info("Narrative Engine initialized")
+        logger.info("Enhanced Narrative Engine initialized")
     
-    def _load_narrative_patterns(self) -> Dict[str, List[str]]:
-        """Load narrative patterns for different scenarios"""
-        return {
-            'arrival': [
-                "O ar muda sutilmente conforme você se aproxima de {location}. {atmosphere}",
-                "Uma sensação de {emotion} paira sobre {location}. {atmosphere}",
-                "Os primeiros sinais de {location} aparecem à distância. {atmosphere}"
-            ],
-            'exploration': [
-                "Cada passo revela novos detalhes sobre {location}. {atmosphere}",
-                "A exploração de {location} revela {discovery}. {atmosphere}",
-                "Conforme você investiga {location}, {observation} se torna aparente. {atmosphere}"
-            ],
-            'interaction': [
-                "A presença de {npc} adiciona uma nova dimensão ao ambiente. {atmosphere}",
-                "A interação com {npc} revela {insight}. {atmosphere}",
-                "O diálogo com {npc} traz {information} à tona. {atmosphere}"
-            ],
-            'discovery': [
-                "Uma descoberta inesperada aguarda em {location}. {atmosphere}",
-                "O que você encontra em {location} supera suas expectativas. {atmosphere}",
-                "Uma revelação surpreendente emerge de {location}. {atmosphere}"
-            ]
-        }
-    
-    def _load_atmosphere_descriptions(self) -> Dict[str, List[str]]:
-        """Load atmospheric descriptions for different moods"""
-        return {
-            'mysterious': [
-                "Uma aura de mistério envolve o local, fazendo com que até os sons mais familiares pareçam estranhos.",
-                "Sombras dançam nas bordas da visão, criando formas que a mente insiste em interpretar.",
-                "O silêncio aqui tem peso, carregando consigo a promessa de segredos por descobrir."
-            ],
-            'peaceful': [
-                "Uma sensação de calma serena preenche o ar, como se o tempo aqui fluísse mais lentamente.",
-                "O ambiente respira tranquilidade, oferecendo um refúgio dos problemas do mundo exterior.",
-                "Uma paz natural permeia o local, convidando à contemplação e reflexão."
-            ],
-            'dangerous': [
-                "Uma tensão palpável paira no ar, alertando os sentidos para possíveis ameaças.",
-                "O ambiente carrega uma energia ameaçadora, fazendo com que cada som seja potencialmente perigoso.",
-                "Uma sensação de perigo iminente faz com que os pelos da nuca se eriçem."
-            ],
-            'energetic': [
-                "O local pulsa com energia vital, fazendo com que seja impossível não se sentir revigorado.",
-                "Uma vibração positiva preenche o ar, contagiando todos que aqui chegam.",
-                "O ambiente irradia entusiasmo e possibilidade, inspirando ação e criatividade."
-            ],
-            'melancholic': [
-                "Uma melancolia sutil permeia o local, como se as paredes guardassem memórias tristes.",
-                "O ar carrega o peso de histórias não contadas e sonhos não realizados.",
-                "Uma nostalgia suave envolve o ambiente, convidando à reflexão sobre o passado."
-            ]
-        }
-    
-    def generate_location_description(self, location: Location, mood: str = None) -> str:
-        """Generate a rich description for a location"""
-        if not mood:
-            mood = random.choice(list(self.atmosphere_descriptions.keys()))
+    def generate_location_description(self, location: Location) -> str:
+        """Generate enhanced location description using AI"""
         
-        # Get base description
-        base_desc = location.get_description(include_details=True)
+        # Check if location was procedurally generated
+        if hasattr(location, 'generated_at'):
+            # Use existing AI-generated description
+            base_description = location.description
+        else:
+            # Generate new description for existing locations
+            base_description = self.ai_engine.generate_world_building_response(
+                f"Descreva detalhadamente a localização {location.name} "
+                f"do tipo {location.location_type}. "
+                f"Seja criativo e envolvente, criando uma atmosfera imersiva.",
+                f"Localização: {location.name}\nTipo: {location.location_type}\n"
+                f"NPCs: {len(location.npcs)}\nItens: {len(location.items)}"
+            )
+            
+            if not base_description:
+                base_description = location.description
         
-        # Add atmospheric elements
-        atmosphere = random.choice(self.atmosphere_descriptions.get(mood, self.atmosphere_descriptions['mysterious']))
+        # Add dynamic elements based on time, weather, and events
+        dynamic_elements = self._generate_dynamic_elements(location)
         
-        # Add time and weather context
-        time_context = self._get_time_context()
-        weather_context = self._get_weather_context()
-        
-        # Combine everything
-        full_description = f"{base_desc}\n\n{atmosphere}\n\n{time_context}\n{weather_context}"
+        # Combine base description with dynamic elements
+        full_description = f"{base_description}\n\n{dynamic_elements}"
         
         return full_description
     
-    def _get_time_context(self) -> str:
-        """Generate time-based context"""
-        time_of_day = self.world.time_of_day
+    def _generate_dynamic_elements(self, location: Location) -> str:
+        """Generate dynamic elements for location description"""
         
-        time_descriptions = {
-            'madrugada': "A madrugada traz consigo um silêncio profundo, onde até os sons mais sutis ecoam com clareza cristalina.",
-            'manhã': "A manhã banha o local com luz dourada, trazendo renovação e possibilidades para o novo dia.",
-            'tarde': "A tarde traz consigo a energia do dia em pleno vigor, com atividade e movimento por todos os lados.",
-            'noite': "A noite envolve o local em sombras misteriosas, onde a imaginação pode dar vida a qualquer som ou movimento."
+        dynamic_parts = []
+        
+        # Add weather effects
+        weather = self.world.weather if hasattr(self.world, 'weather') else 'ensolarado'
+        if weather != 'ensolarado':
+            weather_effects = {
+                'chuvoso': f"O som da chuva caindo sobre {location.name} cria uma atmosfera melancólica.",
+                'nublado': f"Nuvens pesadas pairam sobre {location.name}, criando sombras misteriosas.",
+                'tempestuoso': f"O vento uiva através de {location.name}, carregando o aroma de tempestade."
+            }
+            if weather in weather_effects:
+                dynamic_parts.append(weather_effects[weather])
+        
+        # Add time of day effects
+        time_of_day = self.world.time_of_day if hasattr(self.world, 'time_of_day') else 'dia'
+        if time_of_day != 'dia':
+            time_effects = {
+                'noite': f"À noite, {location.name} ganha um ar mais misterioso e intimidador.",
+                'madrugada': f"Na madrugada, {location.name} está envolta em névoa e silêncio.",
+                'tarde': f"O sol da tarde ilumina {location.name} com uma luz dourada e quente."
+            }
+            if time_of_day in time_effects:
+                dynamic_parts.append(time_effects[time_of_day])
+        
+        # Add NPC activity descriptions
+        if location.npcs:
+            npc_activity = self._generate_npc_activity_description(location)
+            if npc_activity:
+                dynamic_parts.append(npc_activity)
+        
+        # Add recent events
+        if hasattr(location, 'events') and location.events:
+            recent_events = [
+                event for event in location.events
+                if hasattr(event, 'timestamp') and 
+                (datetime.now() - datetime.fromisoformat(event['timestamp'])).days < 1
+            ]
+            if recent_events:
+                event_desc = f"Recentemente, {recent_events[0].get('description', 'algo interessante aconteceu aqui')}."
+                dynamic_parts.append(event_desc)
+        
+        return " ".join(dynamic_parts) if dynamic_parts else ""
+    
+    def _generate_npc_activity_description(self, location: Location) -> str:
+        """Generate description of NPC activities in a location"""
+        
+        if not location.npcs:
+            return ""
+        
+        # Select a random NPC to describe their activity
+        npc = random.choice(location.npcs)
+        npc_name = npc.get('name', 'Um NPC')
+        npc_role = npc.get('role', 'residente')
+        
+        activities = {
+            'merchant': f"{npc_name} está organizando suas mercadorias e atendendo clientes.",
+            'guard': f"{npc_name} mantém vigilância, observando os arredores com atenção.",
+            'scholar': f"{npc_name} está absorto em seus estudos, folheando livros antigos.",
+            'adventurer': f"{npc_name} compartilha histórias de suas aventuras com outros viajantes.",
+            'commoner': f"{npc_name} realiza suas tarefas diárias com dedicação."
         }
         
-        return time_descriptions.get(time_of_day, "")
-    
-    def _get_weather_context(self) -> str:
-        """Generate weather-based context"""
-        weather = self.world.weather
+        # Use AI to generate more specific activity descriptions
+        activity_prompt = f"Descreva brevemente o que {npc_name}, um {npc_role}, "
+        activity_prompt += f"está fazendo em {location.name}. Seja específico e envolvente."
         
-        weather_descriptions = {
-            'ensolarado': "O sol brilha intensamente, criando sombras nítidas e um calor que convida ao descanso.",
-            'nublado': "Nuvens cinzentas cobrem o céu, criando uma atmosfera mais introspectiva e contemplativa.",
-            'chuvoso': "A chuva cai suavemente, criando um som reconfortante e limpando o ar de poeira e tensão.",
-            'tempestuoso': "Uma tempestade se aproxima, trazendo consigo eletricidade no ar e uma sensação de poder da natureza.",
-            'nevando': "Flocos de neve dançam no ar, criando um cenário mágico e silencioso."
-        }
+        ai_activity = self.ai_engine.generate_world_building_response(activity_prompt)
         
-        return weather_descriptions.get(weather, "")
-    
-    def create_story_arc(self, title: str, description: str, locations: List[str], 
-                         npcs: List[str], quests: List[Dict]) -> Dict:
-        """Create a new story arc"""
-        story_arc = {
-            'id': f"arc_{len(self.story_arcs) + 1}",
-            'title': title,
-            'description': description,
-            'locations': locations,
-            'npcs': npcs,
-            'quests': quests,
-            'status': 'active',
-            'created_at': datetime.now().isoformat(),
-            'progress': 0.0,
-            'milestones': []
-        }
-        
-        self.story_arcs.append(story_arc)
-        logger.info(f"New story arc created: {title}")
-        
-        return story_arc
-    
-    def advance_story_arc(self, arc_id: str, progress: float, milestone: str = None):
-        """Advance the progress of a story arc"""
-        for arc in self.story_arcs:
-            if arc['id'] == arc_id:
-                arc['progress'] = min(1.0, arc['progress'] + progress)
-                
-                if milestone:
-                    arc['milestones'].append({
-                        'description': milestone,
-                        'timestamp': datetime.now().isoformat(),
-                        'progress': arc['progress']
-                    })
-                
-                if arc['progress'] >= 1.0:
-                    arc['status'] = 'completed'
-                    logger.info(f"Story arc completed: {arc['title']}")
-                else:
-                    logger.info(f"Story arc progress: {arc['title']} - {arc['progress']:.1%}")
-                break
-    
-    def generate_npc_dialogue(self, npc: NPC, context: str, player_action: str) -> str:
-        """Generate appropriate dialogue for an NPC based on context"""
-        # Analyze the context and player action
-        if 'saudação' in player_action.lower() or 'olá' in player_action.lower():
-            return self._generate_greeting(npc)
-        elif 'pergunta' in player_action.lower() or 'pergunt' in player_action.lower():
-            return self._generate_informative_response(npc, context)
-        elif 'ajuda' in player_action.lower() or 'socorro' in player_action.lower():
-            return self._generate_helpful_response(npc)
+        if ai_activity:
+            return ai_activity
         else:
-            return self._generate_contextual_response(npc, context, player_action)
+            # Fallback to template-based description
+            return activities.get(npc_role.lower(), f"{npc_name} está ocupado com suas atividades.")
     
-    def _generate_greeting(self, npc: NPC) -> str:
-        """Generate a greeting response for an NPC"""
-        greetings = [
-            f"Olá, viajante! Bem-vindo à {npc.role.lower()}.",
-            f"Saudações! É um prazer receber visitantes aqui.",
-            f"Oi! Que bom ter você por aqui hoje.",
-            f"Bem-vindo! Como posso ajudá-lo?"
-        ]
+    def generate_npc_dialogue(self, 
+                             npc: NPC, 
+                             context: str, 
+                             action: str,
+                             player_id: str = None) -> str:
+        """Generate NPC dialogue with memory and personality"""
         
-        return random.choice(greetings)
+        # Get NPC memory context
+        npc_id = npc.name
+        memory_context = ""
+        
+        if player_id:
+            memory_context = self.memory_manager.get_npc_context_for_player(
+                npc_id, player_id, action
+            )
+        
+        # Determine dialogue topic and style
+        dialogue_topic = self._determine_dialogue_topic(action, context)
+        dialogue_style = self._get_npc_dialogue_style(npc)
+        
+        # Generate dialogue using AI with memory context
+        dialogue_prompt = f"""
+        NPC: {npc.name} ({npc.role})
+        Personalidade: {self._get_npc_personality_summary(npc)}
+        Estilo de diálogo: {dialogue_style}
+        Tópico: {dialogue_topic}
+        Contexto da memória: {memory_context}
+        Ação do jogador: {action}
+        
+        Gere uma resposta natural e apropriada para este NPC, considerando sua personalidade, 
+        o contexto da conversa e o que ele já sabe sobre o jogador. Seja criativo e evite repetição.
+        """
+        
+        dialogue = self.ai_engine.generate_dialogue_response(dialogue_prompt)
+        
+        if not dialogue:
+            # Fallback to template-based dialogue
+            dialogue = self._generate_fallback_dialogue(npc, dialogue_topic, action)
+        
+        # Store conversation in memory
+        if player_id:
+            self.memory_manager.add_conversation(
+                npc_id, player_id, dialogue_topic, action, dialogue, context
+            )
+        
+        return dialogue
     
-    def _generate_informative_response(self, npc: NPC, context: str) -> str:
-        """Generate an informative response based on NPC knowledge"""
-        if npc.knowledge:
-            # Find relevant knowledge
-            relevant_knowledge = []
-            for knowledge in npc.knowledge:
-                if any(word in context.lower() for word in knowledge['topic'].lower().split()):
-                    relevant_knowledge.append(knowledge)
+    def _determine_dialogue_topic(self, action: str, context: str) -> str:
+        """Determine the main topic of the dialogue"""
+        
+        # Analyze action and context to determine topic
+        action_lower = action.lower()
+        
+        if any(word in action_lower for word in ['ajuda', 'ajudar', 'problema']):
+            return 'help'
+        elif any(word in action_lower for word in ['história', 'passado', 'origem']):
+            return 'background'
+        elif any(word in action_lower for word in ['missão', 'trabalho', 'tarefa']):
+            return 'quest'
+        elif any(word in action_lower for word in ['rumores', 'notícias', 'informação']):
+            return 'gossip'
+        elif any(word in action_lower for word in ['comércio', 'venda', 'compra']):
+            return 'trade'
+        else:
+            return 'general'
+    
+    def _get_npc_dialogue_style(self, npc: NPC) -> str:
+        """Get the dialogue style for an NPC"""
+        
+        if hasattr(npc, 'personality') and npc.personality:
+            return npc.personality.get('dialogue_style', 'neutral')
+        
+        # Determine style based on role
+        role_styles = {
+            'merchant': 'persuasivo',
+            'guard': 'autoritário',
+            'scholar': 'erudito',
+            'adventurer': 'dramático',
+            'commoner': 'casual'
+        }
+        
+        return role_styles.get(npc.role.lower(), 'neutral')
+    
+    def _get_npc_personality_summary(self, npc: NPC) -> str:
+        """Get a summary of NPC personality traits"""
+        
+        if hasattr(npc, 'personality') and npc.personality:
+            traits = npc.personality.get('traits', [])
+            if traits:
+                return ', '.join(traits)
+        
+        # Generate personality based on role
+        role_personalities = {
+            'merchant': 'ambicioso, amigável, conhecedor de negócios',
+            'guard': 'vigilante, disciplinado, protetor',
+            'scholar': 'curioso, sábio, distraído',
+            'adventurer': 'corajoso, experiente, contador de histórias',
+            'commoner': 'trabalhador, curioso, amigável'
+        }
+        
+        return role_personalities.get(npc.role.lower(), 'neutro')
+    
+    def _generate_fallback_dialogue(self, npc: NPC, topic: str, action: str) -> str:
+        """Generate fallback dialogue when AI generation fails"""
+        
+        topic_responses = {
+            'help': f"Claro, posso ajudar! O que você precisa?",
+            'background': f"Ah, minha história? Bem, sou {npc.role} aqui em {npc.name}.",
+            'quest': f"Missões? Sempre há algo interessante acontecendo por aqui.",
+            'gossip': f"Rumores? Deixe-me pensar... Ah sim, ouvi algo interessante.",
+            'trade': f"Comércio? Tenho algumas coisas que podem interessar você.",
+            'general': f"Olá! Como posso ajudá-lo hoje?"
+        }
+        
+        return topic_responses.get(topic, f"Olá! Sou {npc.name}, {npc.role}.")
+    
+    def create_atmospheric_event(self, location: Location) -> str:
+        """Create atmospheric events for locations"""
+        
+        # Use AI to generate atmospheric events
+        event_prompt = f"""
+        Localização: {location.name}
+        Tipo: {location.location_type}
+        Clima: {getattr(self.world, 'weather', 'ensolarado')}
+        Hora: {getattr(self.world, 'time_of_day', 'dia')}
+        
+        Crie um evento atmosférico pequeno e envolvente para esta localização. 
+        Pode ser um som, uma mudança de luz, um movimento, ou algo similar. 
+        Seja criativo mas sutil, para não distrair da narrativa principal.
+        """
+        
+        atmospheric_event = self.ai_engine.generate_world_building_response(event_prompt)
+        
+        if not atmospheric_event:
+            # Fallback atmospheric events
+            fallback_events = [
+                f"Uma brisa suave passa por {location.name}, carregando aromas familiares.",
+                f"O som distante de passos ecoa pelas ruas próximas.",
+                f"Uma sombra passa rapidamente, criando um momento de mistério.",
+                f"O ar se torna mais denso, como se algo importante estivesse prestes a acontecer."
+            ]
+            atmospheric_event = random.choice(fallback_events)
+        
+        return atmospheric_event
+    
+    def expand_world_procedurally(self, 
+                                expansion_type: str = 'organic',
+                                num_locations: int = 3) -> List[Dict[str, Any]]:
+        """Expand the world using procedural generation"""
+        
+        current_locations = list(self.world.locations.keys())
+        
+        if expansion_type == 'organic':
+            # Expand organically based on existing locations
+            new_content = self.procedural_generator.expand_world(
+                current_locations, 'organic'
+            )
+        else:
+            # Create specific types of locations
+            new_content = []
+            for _ in range(num_locations):
+                location_type = random.choice(['city', 'wilderness', 'dungeon', 'tavern'])
+                new_location = self.procedural_generator.generate_location(
+                    location_type=location_type,
+                    context=f"Expansão {expansion_type} do mundo"
+                )
+                
+                # Add NPCs to the new location
+                num_npcs = random.randint(1, 3)
+                for _ in range(num_npcs):
+                    npc_type = random.choice(['merchant', 'guard', 'scholar', 'adventurer', 'commoner'])
+                    new_npc = self.procedural_generator.generate_npc(
+                        npc_type=npc_type,
+                        location_context=new_location['name']
+                    )
+                    new_location['npcs'].append(new_npc)
+                
+                new_content.append(new_location)
+        
+        # Add new content to the world
+        for content in new_content:
+            if 'name' in content:  # It's a location
+                self._add_generated_location_to_world(content)
+        
+        logger.info(f"World expanded with {len(new_content)} new locations")
+        return new_content
+    
+    def _add_generated_location_to_world(self, location_data: Dict[str, Any]) -> None:
+        """Add a procedurally generated location to the world"""
+        
+        # Create Location object
+        location = Location(
+            location_data['name'],
+            location_data['description'],
+            location_data['location_type']
+        )
+        
+        # Set additional properties
+        location.ambiance = location_data.get('ambiance', '')
+        location.size = location_data.get('size', 'médio')
+        location.style = location_data.get('style', 'padrão')
+        location.features = location_data.get('features', [])
+        
+        # Add NPCs
+        for npc_data in location_data.get('npcs', []):
+            npc = NPC(
+                npc_data['name'],
+                npc_data['role'],
+                npc_data['description']
+            )
             
-            if relevant_knowledge:
-                knowledge = random.choice(relevant_knowledge)
-                return f"Ah, sobre {knowledge['topic']}? {knowledge['information']}"
+            # Set personality and knowledge
+            if 'personality' in npc_data:
+                npc.personality = npc_data['personality']
+            
+            if 'knowledge' in npc_data:
+                npc.knowledge = npc_data['knowledge']
+            
+            if 'dialogue_options' in npc_data:
+                npc.dialogue_options = npc_data['dialogue_options']
+            
+            # Add to location
+            location.add_npc(npc_data)
+            
+            # Add to world NPCs
+            self.world.add_npc(npc)
         
-        return "Hmm, não tenho certeza sobre isso. Talvez você possa perguntar a alguém mais experiente?"
-    
-    def _generate_helpful_response(self, npc: NPC) -> str:
-        """Generate a helpful response for NPCs"""
-        helpful_responses = [
-            "Claro, estarei feliz em ajudar! O que você precisa?",
-            "É para isso que estou aqui! Como posso ser útil?",
-            "Sem problemas! Vamos resolver isso juntos.",
-            "Estou à disposição para ajudar no que for possível."
-        ]
+        # Add to world
+        self.world.add_location(location)
         
-        return random.choice(helpful_responses)
+        logger.info(f"Added generated location '{location.name}' to world")
     
-    def _generate_contextual_response(self, npc: NPC, context: str, player_action: str) -> str:
-        """Generate a contextual response based on the situation"""
-        # Analyze the player's action and generate appropriate response
-        if 'combate' in player_action.lower() or 'luta' in player_action.lower():
-            return "Cuidado com o combate! É sempre melhor resolver as coisas pacificamente quando possível."
-        elif 'explorar' in player_action.lower() or 'investigar' in player_action.lower():
-            return "Exploração é sempre uma boa ideia! Você nunca sabe o que pode descobrir."
-        elif 'comprar' in player_action.lower() or 'vender' in player_action.lower():
-            return "Ah, você está interessado em comércio? Posso ter algumas sugestões para você."
-        else:
-            return "Interessante! Continue explorando e descobrindo o que este mundo tem a oferecer."
-    
-    def create_atmospheric_event(self, location: Location, event_type: str = 'random') -> str:
-        """Create an atmospheric event to enhance the narrative"""
-        if event_type == 'random':
-            event_type = random.choice(['sound', 'visual', 'environmental', 'social'])
+    def create_dynamic_quest(self, 
+                           quest_type: str = None,
+                           target_location: str = None) -> Dict[str, Any]:
+        """Create dynamic quests using AI"""
         
-        event_descriptions = {
-            'sound': [
-                "Um som distante ecoa pelas ruas, sua origem impossível de determinar.",
-                "O vento sussurra através das frestas, criando uma melodia misteriosa.",
-                "Passos distantes ressoam nas pedras, aproximando-se e depois afastando-se."
+        if not quest_type:
+            quest_types = ['exploration', 'collection', 'escort', 'investigation', 'combat']
+            quest_type = random.choice(quest_types)
+        
+        # Generate quest using AI
+        quest_prompt = f"""
+        Crie uma missão do tipo {quest_type} para um RPG. 
+        A missão deve ser interessante, com objetivos claros e recompensas apropriadas.
+        
+        Inclua:
+        - Título da missão
+        - Descrição detalhada
+        - Objetivos específicos
+        - Recompensas
+        - Dificuldade estimada
+        - Dicas ou pistas
+        
+        Seja criativo e envolvente.
+        """
+        
+        quest_description = self.ai_engine.generate_quest_response(quest_prompt)
+        
+        if not quest_description:
+            # Fallback quest generation
+            quest_description = self._generate_fallback_quest(quest_type)
+        
+        # Create quest data structure
+        quest_data = {
+            'title': f"Missão de {quest_type.title()}",
+            'description': quest_description,
+            'type': quest_type,
+            'objectives': self._generate_quest_objectives(quest_type),
+            'rewards': self._generate_quest_rewards(quest_type),
+            'difficulty': random.choice(['fácil', 'médio', 'difícil', 'épico']),
+            'target_location': target_location,
+            'created_at': datetime.now().isoformat(),
+            'status': 'available'
+        }
+        
+        return quest_data
+    
+    def _generate_fallback_quest(self, quest_type: str) -> str:
+        """Generate fallback quest when AI generation fails"""
+        
+        quest_templates = {
+            'exploration': "Explore uma área desconhecida e descubra seus segredos.",
+            'collection': "Colete itens específicos espalhados pelo mundo.",
+            'escort': "Proteja um NPC importante durante uma jornada perigosa.",
+            'investigation': "Investigue um mistério que está assombrando a região.",
+            'combat': "Enfrente um inimigo poderoso que ameaça a paz local."
+        }
+        
+        return quest_templates.get(quest_type, "Complete uma missão desafiadora.")
+    
+    def _generate_quest_objectives(self, quest_type: str) -> List[str]:
+        """Generate quest objectives based on type"""
+        
+        objective_templates = {
+            'exploration': [
+                "Explorar a área designada",
+                "Descobrir pontos de interesse",
+                "Mapear o território",
+                "Retornar com informações"
             ],
-            'visual': [
-                "Uma sombra se move rapidamente no canto da visão, desaparecendo antes que você possa focar nela.",
-                "Luzes dançam nas janelas distantes, criando padrões que mudam constantemente.",
-                "Reflexos na água criam imagens distorcidas que parecem se mover independentemente."
+            'collection': [
+                "Encontrar todos os itens necessários",
+                "Verificar a qualidade dos itens",
+                "Entregar os itens ao solicitante"
             ],
-            'environmental': [
-                "O ar muda sutilmente, trazendo consigo novos aromas e sensações.",
-                "A temperatura flutua, criando uma sensação de mudança iminente.",
-                "Elementos do ambiente se reorganizam sutilmente, como se o local tivesse vida própria."
+            'escort': [
+                "Proteger o NPC durante a viagem",
+                "Evitar perigos no caminho",
+                "Chegar ao destino com segurança"
             ],
-            'social': [
-                "Conversas distantes chegam aos seus ouvidos, palavras individuais impossíveis de distinguir.",
-                "Risadas ecoam de algum lugar próximo, trazendo uma sensação de alegria e comunidade.",
-                "O som de atividades diárias preenche o ar, criando uma sensação de vida e movimento."
+            'investigation': [
+                "Coletar evidências",
+                "Entrevistar testemunhas",
+                "Analisar pistas",
+                "Resolver o mistério"
+            ],
+            'combat': [
+                "Localizar o inimigo",
+                "Preparar-se para o combate",
+                "Derrotar o oponente",
+                "Confirmar a eliminação"
             ]
         }
         
-        description = random.choice(event_descriptions.get(event_type, event_descriptions['sound']))
+        return objective_templates.get(quest_type, ["Completar a missão"])
+    
+    def _generate_quest_rewards(self, quest_type: str) -> List[str]:
+        """Generate quest rewards based on type"""
         
-        # Add location-specific context
-        if location.location_type == 'tavern':
-            description += " A atmosfera da taverna parece absorver e amplificar o evento."
-        elif location.location_type == 'city':
-            description += " A vida da cidade continua ao redor, aparentemente indiferente ao que aconteceu."
+        reward_templates = {
+            'exploration': ["Experiência", "Conhecimento local", "Itens únicos"],
+            'collection': ["Ouro", "Itens raros", "Fama"],
+            'escort': ["Gratidão", "Recompensa monetária", "Aliados"],
+            'investigation': ["Informações valiosas", "Reconhecimento", "Acesso a áreas restritas"],
+            'combat': ["Experiência de combate", "Equipamento do inimigo", "Glória"]
+        }
         
-        return description
+        return reward_templates.get(quest_type, ["Recompensa padrão"])
     
     def get_narrative_summary(self) -> Dict[str, Any]:
-        """Get a summary of the current narrative state"""
+        """Get a summary of the narrative state"""
+        
         return {
-            'active_story_arcs': len([arc for arc in self.story_arcs if arc['status'] == 'active']),
-            'completed_story_arcs': len([arc for arc in self.story_arcs if arc['status'] == 'completed']),
-            'total_story_arcs': len(self.story_arcs),
-            'active_plots': len(self.active_plots),
-            'character_development_entries': len(self.character_development),
-            'atmosphere_markers': len(self.atmosphere_markers),
-            'world_mood': self._determine_world_mood()
+            'active_storylines': len(self.active_storylines),
+            'world_events': len(self.world_events),
+            'narrative_themes': self.narrative_themes,
+            'procedural_stats': self.procedural_generator.get_generation_stats(),
+            'memory_stats': self.memory_manager.get_memory_statistics(),
+            'world_locations': len(self.world.locations),
+            'world_npcs': len(self.world.npcs)
         }
-    
-    def _determine_world_mood(self) -> str:
-        """Determine the overall mood of the world based on current events"""
-        # This is a simplified version - in a real implementation, you'd analyze
-        # various factors like recent events, player actions, story progress, etc.
-        moods = ['peaceful', 'mysterious', 'dangerous', 'energetic', 'melancholic']
-        return random.choice(moods)

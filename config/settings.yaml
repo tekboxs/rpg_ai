@@ -31,6 +31,26 @@ world:
   default_location: "Taverna do Dragão Dourado"
   starting_scenario: "Uma noite tempestuosa na taverna. O vento uiva pelas janelas e a lareira crepita suavemente."
   
+# Procedural Generation Settings
+procedural:
+  enabled: true
+  max_locations_per_expansion: 5
+  max_npcs_per_location: 4
+  location_name_max_length: 50
+  npc_name_max_length: 30
+  generation_creativity: 0.8  # 0.0 = muito conservador, 1.0 = muito criativo
+  world_expansion_chance: 0.3  # Chance de expansão automática por evento
+  
+# NPC Memory Settings
+memory:
+  enabled: true
+  max_memory_size: 100  # Máximo de conversas por NPC
+  memory_cleanup_interval: 24  # Horas entre limpezas automáticas
+  emotional_state_tracking: true
+  relationship_development: true
+  topic_memory_enabled: true
+  player_interaction_history: true
+  
 # Logging
 logging:
   level: "INFO"

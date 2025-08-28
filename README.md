@@ -10,6 +10,18 @@ Um sistema de RPG multiplayer inovador que utiliza inteligência artificial para
 - **Múltiplos Estilos**: Suporte para diferentes tipos de cenários (combate, exploração, diálogo)
 - **Consistência de Mundo**: Mantém coerência na história e no universo do jogo
 
+### 🏗️ Geração Procedural Avançada
+- **Localizações Dinâmicas**: Cria novas áreas do mundo conforme necessário
+- **NPCs Únicos**: Gera personagens com personalidades e histórias distintas
+- **Missões Personalizadas**: Cria objetivos únicos baseados no contexto
+- **Expansão Orgânica**: O mundo cresce de forma natural e coerente
+
+### 🧠 Sistema de Memória para NPCs
+- **Memória Persistente**: NPCs se lembram de conversas anteriores
+- **Relacionamentos Dinâmicos**: Desenvolvem laços com jogadores ao longo do tempo
+- **Personalidades Únicas**: Cada NPC tem traços e estilos de diálogo distintos
+- **Contexto Inteligente**: Evitam repetir informações já compartilhadas
+
 ### 🎮 Sistema de Jogo Robusto
 - **Gerenciamento de Jogadores**: Sistema completo de sessões e personagens
 - **Mundo Dinâmico**: Localizações, NPCs e eventos que evoluem com o tempo
@@ -83,7 +95,7 @@ python -m src.network.client
 - `{mover} <direção>` - Move para uma direção específica (norte, sul, leste, oeste)
 
 ### Comandos de Interação
-- `{falar} <NPC>` - Inicia conversa com um NPC específico
+- `{falar} <NPC>` - Inicia conversa com um NPC específico (com memória!)
 - `{combate} <alvo>` - Inicia uma sequência de combate
 
 ### Comandos do Sistema
@@ -94,165 +106,78 @@ python -m src.network.client
 - `{salvar}` - Salva o estado do jogo
 - `{carregar}` - Carrega um estado salvo
 
+### 🆕 Novos Comandos de Geração
+- `{expandir} [tipo]` - Expande o mundo proceduralmente
+  - Tipos: `organic`, `quest_driven`, `random`
+- `{gerar} <tipo>` - Gera conteúdo específico
+  - Tipos: `localização`, `npc`, `missão`
+
 ### Roleplay
 - Digite qualquer texto para falar ou agir no jogo
 - Use comandos especiais para interagir com o sistema
 - Explore o mundo e crie sua própria história!
 
-## 🏗️ Arquitetura do Sistema
+## 🆕 Novos Recursos em Destaque
 
-### Estrutura de Diretórios
-```
-rpg_ai/
-├── src/
-│   ├── core/           # Componentes principais do jogo
-│   │   ├── game_state.py    # Estado global do jogo
-│   │   ├── player.py        # Gerenciamento de jogadores
-│   │   └── world.py         # Mundo e localizações
-│   ├── game_master/    # Sistema do Game Master
-│   │   ├── master.py        # Classe principal do GM
-│   │   ├── ai_engine.py     # Motor de IA
-│   │   └── narrative.py     # Sistema de narrativa
-│   ├── network/        # Comunicação em rede
-│   │   ├── server.py        # Servidor do jogo
-│   │   └── client.py        # Cliente do jogo
-│   └── utils/          # Utilitários
-│       ├── config.py        # Gerenciamento de configuração
-│       └── logger.py        # Sistema de logging
-├── config/
-│   └── settings.yaml   # Configurações do sistema
-├── main.py             # Ponto de entrada principal
-└── requirements.txt    # Dependências Python
-```
+### 🌍 Expansão Procedural do Mundo
+O sistema agora pode expandir o mundo automaticamente:
+- **Expansão Orgânica**: Novas localizações conectadas às existentes
+- **Expansão por Missões**: Áreas criadas especificamente para objetivos
+- **Geração Inteligente**: Cada localização é única e contextualizada
 
-### Componentes Principais
+### 👥 NPCs com Memória e Personalidade
+- **Memória Persistente**: Lembram de conversas e relacionamentos
+- **Personalidades Únicas**: Cada NPC tem traços e estilos distintos
+- **Desenvolvimento de Relacionamentos**: Laços que evoluem com o tempo
+- **Contexto Inteligente**: Evitam repetir informações já compartilhadas
 
-#### 🎭 Game Master
-- **Master**: Coordena todos os sistemas do jogo
-- **AI Engine**: Gera respostas inteligentes usando IA
-- **Narrative Engine**: Cria narrativas envolventes e atmosféricas
+### 🎯 Missões Dinâmicas
+- **Geração Automática**: Missões criadas pela IA conforme necessário
+- **Contexto Personalizado**: Baseadas no estado atual do mundo
+- **Objetivos Únicos**: Cada missão tem objetivos e recompensas distintas
 
-#### 🌍 Mundo do Jogo
-- **World**: Gerencia o universo do jogo
-- **Location**: Representa locais específicos
-- **NPC**: Personagens não-jogadores com personalidades únicas
+## 📚 Documentação Adicional
 
-#### 👥 Sistema de Jogadores
-- **Player**: Representa um jogador individual
-- **PlayerManager**: Gerencia todos os jogadores da sessão
-- **GameSession**: Controla sessões individuais do jogo
+- **[DEMO_NEW_FEATURES.md](DEMO_NEW_FEATURES.md)** - Demonstração detalhada dos novos recursos
+- **[TIMEOUT_CONFIG.md](TIMEOUT_CONFIG.md)** - Configurações de timeout do sistema
+- **[PROJECT_STATUS.md](PROJECT_STATUS.md)** - Status atual do projeto
 
-## ⚙️ Configuração
+## 🔧 Configurações Avançadas
 
-### Arquivo de Configuração (config/settings.yaml)
+### Geração Procedural
 ```yaml
-# Server Settings
-server:
-  host: "0.0.0.0"
-  port: 5555
-  max_players: 8
-  timeout: 30
-
-# AI Settings
-ai:
-  endpoint: "http://localhost:5001/v1/chat/completions"
-  api_key: ""
-  model: "kb-gpt-neo"
-  max_tokens: 600
-  temperature: 0.8
-  max_context_messages: 15
-
-# Game Settings
-game:
-  session_timeout: 300
-  max_history: 100
-  auto_save_interval: 60
-
-# World Settings
-world:
-  default_location: "Taverna do Dragão Dourado"
-  starting_scenario: "Uma noite tempestuosa na taverna..."
-
-# Logging
-logging:
-  level: "INFO"
-  file: "rpg_ai.log"
-  max_size: "10MB"
-  backup_count: 5
+procedural:
+  enabled: true
+  max_locations_per_expansion: 5
+  generation_creativity: 0.8
+  world_expansion_chance: 0.3
 ```
 
-## 🔧 Desenvolvimento
-
-### Executando Testes
-```bash
-# Testar conexão com IA
-python -c "from src.game_master.ai_engine import AIEngine; print(AIEngine().test_connection())"
-
-# Verificar configuração
-python -c "from src.utils.config import config; print(config.get_world_summary())"
+### Sistema de Memória
+```yaml
+memory:
+  enabled: true
+  max_memory_size: 100
+  emotional_state_tracking: true
+  relationship_development: true
 ```
 
-### Estrutura de Logs
-O sistema gera logs detalhados em:
-- **Console**: Informações em tempo real
-- **Arquivo**: Logs persistentes em `rpg_ai.log`
-- **Rotação**: Logs são rotacionados automaticamente
+## 🌟 Benefícios dos Novos Recursos
 
-### Extensibilidade
-O sistema foi projetado para ser facilmente extensível:
-- **Novos Comandos**: Adicione padrões regex em `GameMaster._load_command_patterns()`
-- **Novos Tipos de IA**: Estenda `AIEngine` com novos prompts
-- **Novos Elementos de Mundo**: Crie subclasses de `Location` e `NPC`
+1. **Mundo Infinito**: O mundo se expande conforme necessário
+2. **NPCs Inteligentes**: Personalidades únicas e memória persistente
+3. **Conteúdo Único**: Cada sessão é diferente
+4. **Imersão**: NPCs se lembram de você e desenvolvem relacionamentos
+5. **Escalabilidade**: Sistema que cresce com o uso
 
-## 🌟 Recursos Avançados
+## 🚀 Próximos Passos
 
-### Sistema de Missões
-- Criação dinâmica de objetivos
-- Progresso automático baseado em ações
-- Recompensas e consequências
-
-### Eventos Dinâmicos
-- Mudanças de clima automáticas
-- Chegada de novos NPCs
-- Eventos atmosféricos aleatórios
-
-### Persistência de Dados
-- Salvamento automático a cada minuto
-- Salvamento manual via comando
-- Carregamento de estados salvos
-
-## 🤝 Contribuindo
-
-### Como Contribuir
-1. Fork o projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
-
-### Padrões de Código
-- Use type hints em todas as funções
-- Documente todas as classes e métodos
-- Siga o padrão PEP 8
-- Mantenha a cobertura de testes alta
-
-## 📝 Licença
-
-Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE](LICENSE) para detalhes.
-
-## 🙏 Agradecimentos
-
-- Comunidade RPG por inspiração
-- Desenvolvedores de IA por ferramentas poderosas
-- Testadores beta por feedback valioso
-
-## 📞 Suporte
-
-Para suporte, dúvidas ou sugestões:
-- Abra uma issue no GitHub
-- Entre em contato via email
-- Participe da comunidade Discord
+- Teste os novos comandos de geração
+- Explore o mundo expandido
+- Converse com NPCs para desenvolver relacionamentos
+- Aceite missões dinâmicas
+- Monitore o crescimento do mundo
 
 ---
 
-**🎲 Divirta-se e boa aventura no mundo do RPG AI!** 🚀
+**🎉 Agora o RPG AI oferece uma experiência verdadeiramente dinâmica e imersiva, com um mundo que cresce e NPCs que se lembram de você!**
