@@ -16,6 +16,7 @@ from src.network.client import start_client
 from src.utils.logger import logger
 from src.utils.config import config
 
+
 def main():
     """Main entry point for RPG AI system"""
     parser = argparse.ArgumentParser(
@@ -27,44 +28,42 @@ Exemplos de uso:
   python main.py client          # Iniciar cliente
   python main.py server --port 6666  # Servidor na porta 6666
   python main.py client --host 192.168.1.100  # Cliente conectando ao IP específico
-        """
+        """,
     )
-    
+
     parser.add_argument(
-        'mode',
-        choices=['server', 'client'],
-        help='Modo de execução: server ou client'
+        "mode", choices=["server", "client"], help="Modo de execução: server ou client"
     )
-    
+
     parser.add_argument(
-        '--host',
+        "--host",
         default=None,
-        help='Host/IP para conectar (cliente) ou escutar (servidor)'
+        help="Host/IP para conectar (cliente) ou escutar (servidor)",
     )
-    
+
     parser.add_argument(
-        '--port',
+        "--port",
         type=int,
         default=None,
-        help='Porta para conectar (cliente) ou escutar (servidor)'
+        help="Porta para conectar (cliente) ou escutar (servidor)",
     )
-    
+
     parser.add_argument(
-        '--config',
-        help='Caminho para arquivo de configuração personalizado'
+        "--config", help="Caminho para arquivo de configuração personalizado"
     )
-    
+
     args = parser.parse_args()
-    
+
     try:
         # Reload config if custom path provided
         if args.config:
             from src.utils.config import Config
+
             global config
             config = Config(args.config)
             logger.info(f"Configuração carregada de: {args.config}")
-        
-        if args.mode == 'server':
+
+        if args.mode == "server":
             print("🚀 Iniciando servidor RPG AI...")
             print(f"📊 Configurações:")
             print(f"   Host: {args.host or config.server_host}")
@@ -73,22 +72,28 @@ Exemplos de uso:
             print(f"   Endpoint AI: {config.ai_endpoint}")
             print(f"   Modelo AI: {config.ai_model}")
             print()
-            
+
             # Show new system information
-            print("🆕 Novos Sistemas Ativados:")
-            print(f"   🏗️  Geração Procedural: {'✅' if config.procedural_enabled else '❌'}")
+            print("🆕 Sistemas Avançados Ativados:")
+            print(
+                f"   🏗️  Geração Procedural: {'✅' if config.procedural_enabled else '❌'}"
+            )
             print(f"   🧠 Memória de NPCs: {'✅' if config.memory_enabled else '❌'}")
+            print(f"   🎲 Sistema de Dados: ✅")
+            print(f"   🎭 Sistema de Eventos: ✅")
+            print(f"   🤖 IA Mestre Autônoma: ✅")
+            print(f"   🔧 Administração do Servidor: ✅")
             print(f"   🎨 Criatividade AI: {config.generation_creativity:.1f}")
             print(f"   🌍 Expansão Mundial: {config.world_expansion_chance:.1f}")
             print(f"   💾 Tamanho da Memória: {config.max_memory_size} conversas")
             print()
-            
+
             start_server(args.host, args.port)
-            
-        elif args.mode == 'client':
+
+        elif args.mode == "client":
             print("🎮 Iniciando cliente RPG AI...")
             start_client()
-            
+
     except KeyboardInterrupt:
         print("\n\n🛑 Sistema interrompido pelo usuário.")
         logger.info("System interrupted by user")
@@ -96,6 +101,7 @@ Exemplos de uso:
         print(f"\n❌ Erro fatal: {e}")
         logger.critical(f"Fatal error: {e}")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

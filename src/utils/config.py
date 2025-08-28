@@ -74,6 +74,10 @@ class Config:
         return self.get('ai.api_key', '')
     
     @property
+    def ai_enabled(self) -> bool:
+        return self.get('ai.enabled', True)
+    
+    @property
     def ai_model(self) -> str:
         return self.get('ai.model', 'kb-gpt-neo')
     

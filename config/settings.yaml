@@ -11,10 +11,11 @@ server:
 
 # AI Settings
 ai:
+  enabled: true  # Habilita/desabilita o sistema de IA
   endpoint: "http://localhost:5001/v1/chat/completions"
   api_key: ""
   model: "kb-gpt-neo"
-  max_tokens: 600
+  max_tokens: 1000
   temperature: 0.8
   max_context_messages: 15
   request_timeout: 0  # 0 = sem timeout (ilimitado), > 0 = timeout em segundos

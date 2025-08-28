@@ -11,6 +11,11 @@ from .ai_engine import AIEngine
 from .narrative import NarrativeEngine
 from .procedural_generator import ProceduralGenerator
 from .npc_memory import NPCMemoryManager
+from .story_generator import StoryGenerator
+from .dice_system import DiceSystem
+from .event_system import EventSystem
+from .ai_dungeon_master import AIDungeonMaster
+from .server_admin import ServerAdmin
 from ..utils.logger import logger
 from ..utils.config import config
 import random
@@ -25,6 +30,22 @@ class GameMaster:
         self.narrative_engine = NarrativeEngine(self.world, self.ai_engine)
         self.procedural_generator = ProceduralGenerator(self.ai_engine)
         self.memory_manager = NPCMemoryManager()
+        
+        # Initialize new systems
+        self.dice_system = DiceSystem()
+        self.event_system = EventSystem(self.ai_engine, self.dice_system)
+        self.story_generator = StoryGenerator(self.ai_engine)
+        self.ai_dungeon_master = AIDungeonMaster(
+            self.ai_engine, 
+            self.story_generator, 
+            self.event_system, 
+            self.dice_system
+        )
+        self.server_admin = ServerAdmin()
+        
+        # Campaign state
+        self.campaign_started = False
+        self.player_actions_history = []
         
         # Command patterns for different actions
         self.command_patterns = self._load_command_patterns()
@@ -52,7 +73,14 @@ class GameMaster:
             'save': re.compile(r'\{salvar\}(?:\s+(.+))?', re.IGNORECASE),
             'load': re.compile(r'\{carregar\}(?:\s+(.+))?', re.IGNORECASE),
             'expand': re.compile(r'\{expandir\}(?:\s+(.+))?', re.IGNORECASE),
-            'generate': re.compile(r'\{gerar\}(?:\s+(.+))?', re.IGNORECASE)
+            'generate': re.compile(r'\{gerar\}(?:\s+(.+))?', re.IGNORECASE),
+            
+            # New command patterns
+            'story': re.compile(r'\{historia\}(?:\s+(.+))?', re.IGNORECASE),
+            'dice': re.compile(r'\{dados\s+(\w+)\}', re.IGNORECASE),
+            'event': re.compile(r'\{evento\}(?:\s+(.+))?', re.IGNORECASE),
+            'action': re.compile(r'\{acao\s+(.+)\}', re.IGNORECASE),
+            'admin': re.compile(r'\{admin\s+(\w+)(?:\s+(.+))?\}', re.IGNORECASE)
         }
     
     def process_player_action(self, player: Player, action: str) -> Optional[str]:
@@ -144,6 +172,31 @@ class GameMaster:
         match = self.command_patterns['generate'].match(action)
         if match:
             return self._handle_generate_command(player, match.group(1))
+        
+        # Check for story command
+        match = self.command_patterns['story'].match(action)
+        if match:
+            return self._handle_story_command(player, match.group(1))
+        
+        # Check for dice command
+        match = self.command_patterns['dice'].match(action)
+        if match:
+            return self._handle_dice_command(player, match.group(1))
+        
+        # Check for event command
+        match = self.command_patterns['event'].match(action)
+        if match:
+            return self._handle_event_command(player, match.group(1))
+        
+        # Check for action command
+        match = self.command_patterns['action'].match(action)
+        if match:
+            return self._handle_action_command(player, match.group(1))
+        
+        # Check for admin command
+        match = self.command_patterns['admin'].match(action)
+        if match:
+            return self._handle_admin_command(player, match.group(1), match.group(2))
         
         return None
     
@@ -406,38 +459,58 @@ class GameMaster:
     def _handle_help_command(self, player: Player, topic: Optional[str]) -> str:
         """Handle the help command with new features"""
         if not topic:
-            help_text = """
-🎮 **COMANDOS DISPONÍVEIS:**
+            help_text = f"""
+🎮 **COMANDOS DISPONÍVEIS - RPG AI:**
 
-**Narrativa:**
-- {narra} [tema] - Solicita narração do Mestre sobre um tema específico
-- {explorar} - Explora detalhadamente a localização atual
+📖 **NARRATIVA:**
+- {{narra}} [tema] - Solicita narração do Mestre sobre um tema específico
+- {{explorar}} - Explora detalhadamente a localização atual
+- {{historia}} [estilo] - Inicia/gerencia campanha com IA Mestre
 
-**Movimento:**
-- {mover} <direção> - Move para uma direção específica (norte, sul, leste, oeste)
+🎲 **DADOS E EVENTOS:**
+- {{dados}} <tipo> - Rola dados (ex: d20, 2d6, d100)
+- {{evento}} [tipo] - Dispara evento aleatório
+- {{acao}} <descrição> - Descreve ação para IA Mestre
 
-**Interação:**
-- {falar} <NPC> - Inicia conversa com um NPC específico (com memória!)
-- {combate} <alvo> - Inicia uma sequência de combate
+🚶 **MOVIMENTO:**
+- {{mover}} <direção> - Move para uma direção específica (norte, sul, leste, oeste)
 
-**Sistema:**
-- {missao} - Gerencia missões e objetivos
-- {inventario} - Mostra seu inventário
-- {status} - Mostra seu status atual
-- {ajuda} [tema] - Mostra ajuda sobre um tema específico
-- {salvar} - Salva o estado do jogo
-- {carregar} - Carrega um estado salvo
+💬 **INTERAÇÃO:**
+- {{falar}} <NPC> - Inicia conversa com um NPC específico (com memória!)
+- {{combate}} <alvo> - Inicia uma sequência de combate
 
-**Novos Recursos:**
-- {expandir} [tipo] - Expande o mundo proceduralmente
-- {gerar} <tipo> - Gera conteúdo específico (localização, NPC, missão)
+📋 **SISTEMA:**
+- {{missao}} - Gerencia missões e objetivos
+- {{inventario}} - Mostra seu inventário
+- {{status}} - Mostra seu status atual
+- {{ajuda}} [tema] - Mostra ajuda sobre um tema específico
+- {{salvar}} - Salva o estado do jogo
+- {{carregar}} - Carrega um estado salvo
 
-**Roleplay:**
+🏗️ **GERAÇÃO PROCEDURAL:**
+- {{expandir}} [tipo] - Expande o mundo proceduralmente
+- {{gerar}} <tipo> - Gera conteúdo específico (localização, NPC, missão)
+
+🔧 **ADMINISTRAÇÃO:**
+- {{admin}} <comando> [parâmetros] - Comandos administrativos
+  - reiniciar - Reinicia servidor
+  - deletar_dados - Deleta todos os dados
+  - backup - Cria backup
+  - status_servidor - Status detalhado
+
+🎭 **ROLEPLAY:**
 - Digite qualquer texto para falar ou agir no jogo
+- Use {{acao}} para descrever ações específicas
 
 💡 **DICA:** Use os comandos especiais para interagir com o sistema, mas principalmente use texto livre para criar sua história!
 
-🆕 **NOVO:** NPCs agora têm memória e personalidades únicas! Eles se lembram de conversas anteriores e respondem de forma mais natural.
+🆕 **NOVO:** 
+- NPCs agora têm memória e personalidades únicas!
+- IA Mestre autônoma toma decisões da campanha!
+- Sistema de dados para eventos e combate!
+- Geração procedural de histórias únicas!
+
+🤖 **IA MESTRE ATIVO:** {'✅' if self.campaign_started else '❌'}
             """.strip()
         else:
             help_text = f"ℹ️ Ajuda sobre '{topic}': Este recurso está em desenvolvimento."
@@ -478,6 +551,22 @@ class GameMaster:
 **NPCs com memória:** {memory_stats['total_npcs_with_memory']}
 **Total de conversas:** {memory_stats['total_conversations']}
 **Jogadores únicos:** {memory_stats['total_unique_players']}
+
+🎲 **SISTEMA DE DADOS:**
+**Total de rolagens:** {self.dice_system.get_statistics().get('total_rolls', 0)}
+**Sucessos críticos:** {self.dice_system.get_statistics().get('critical_successes', 0)}
+**Falhas críticas:** {self.dice_system.get_statistics().get('critical_failures', 0)}
+
+🎭 **SISTEMA DE EVENTOS:**
+**Eventos ativos:** {self.event_system.get_event_statistics().get('active_events', 0)}
+**Total de eventos:** {self.event_system.get_event_statistics().get('total_events', 0)}
+**Taxa de resolução:** {self.event_system.get_event_statistics().get('resolution_rate', 0):.1%}
+
+🤖 **IA MESTRE:**
+**Campanha ativa:** {'✅' if self.campaign_started else '❌'}
+**Progresso da história:** {self.ai_dungeon_master.get_campaign_status().get('story_progress', '0%')}
+**Decisões tomadas:** {self.ai_dungeon_master.get_campaign_status().get('recent_decisions', 0)}
+**Ações dos jogadores:** {len(self.player_actions_history)}
         """.strip()
         
         return status_text
@@ -580,6 +669,193 @@ class GameMaster:
         
         return "🌍 Algo interessante acontece no mundo..."
     
+    def _handle_story_command(self, player: Player, campaign_style: Optional[str]) -> str:
+        """Handle the story command - start or manage campaign story"""
+        
+        if not self.campaign_started:
+            # Start new campaign
+            player_count = len(self.game_state.get_active_players())
+            story_data = self.ai_dungeon_master.start_new_campaign(player_count, campaign_style)
+            
+            self.campaign_started = True
+            
+            # Add to game history
+            self.game_state.add_to_history("IA Mestre", f"Nova campanha iniciada: {story_data['story_title']}", "gm")
+            
+            return f"""
+🎭 **NOVA CAMPANHA INICIADA!**
+
+📖 **Título:** {story_data['story_title']}
+🌍 **Tipo:** {story_data['campaign_type']}
+📍 **Localização Inicial:** {story_data['initial_location']}
+📝 **História:** {story_data['story_text'][:200]}...
+
+🎯 **Situação Inicial:**
+{story_data['initial_situation']['description']}
+⏰ **Tempo:** {story_data['initial_situation']['time_of_day']}
+🌤️ **Clima:** {story_data['initial_situation']['weather']}
+⚠️ **Perigo:** {story_data['initial_situation']['danger_level']}
+
+👥 **NPCs Presentes:**
+{chr(10).join([f"- {npc['name']} ({npc['role']}): {npc['attitude']}" for npc in story_data['initial_npcs']])}
+
+🎲 **Use {acao} <sua ação> para interagir com a situação!**
+            """.strip()
+        else:
+            # Show current campaign status
+            campaign_status = self.ai_dungeon_master.get_campaign_status()
+            
+            return f"""
+🎭 **STATUS DA CAMPANHA ATUAL:**
+
+📊 **Progresso:** {campaign_status['story_progress']}
+🌍 **Escala:** {campaign_status['campaign_state']['campaign_scale']}
+🎭 **Humor:** {campaign_status['campaign_state']['campaign_mood']}
+⚖️ **Dificuldade:** {campaign_status['campaign_state']['difficulty_curve']}
+
+📝 **Trama Ativa:**
+{chr(10).join([f"- {thread}" for thread in campaign_status['campaign_state']['active_plot_threads'][-3:]])}
+
+🎲 **Use {acao} <sua ação> para continuar a história!**
+            """.strip()
+    
+    def _handle_dice_command(self, player: Player, dice_type: str) -> str:
+        """Handle the dice command - roll dice for various purposes"""
+        
+        if not dice_type:
+            return "⚠️ Especifique o tipo de dados. Use: {dados} <tipo> (ex: d20, 2d6, d100)"
+        
+        try:
+            # Roll the dice
+            roll_result = self.dice_system.roll_dice(dice_type)
+            
+            # Add to game history
+            self.game_state.add_to_history("Dados", f"{player.name} rolou {dice_type}: {roll_result['final_result']}", "system")
+            
+            # Format response
+            if roll_result['critical_type'] == 'critical_success':
+                result_emoji = "🎉"
+                result_text = "SUCESSO CRÍTICO!"
+            elif roll_result['critical_type'] == 'critical_failure':
+                result_emoji = "💥"
+                result_text = "FALHA CRÍTICA!"
+            else:
+                result_emoji = "🎲"
+                result_text = f"Resultado: {roll_result['final_result']}"
+            
+            return f"""
+🎲 **ROLAGEM DE DADOS**
+
+👤 **Jogador:** {player.name}
+🎯 **Dados:** {dice_type}
+📊 **Resultado:** {roll_result['natural_roll']} + {roll_result['modifier']} = {roll_result['final_result']}
+{result_emoji} **{result_text}**
+
+📝 **Detalhes:** {roll_result['roll_details']}
+⏰ **Timestamp:** {roll_result['timestamp']}
+            """.strip()
+            
+        except Exception as e:
+            logger.error(f"Error rolling dice: {e}")
+            return f"⚠️ Erro ao rolar dados: {str(e)}"
+    
+    def _handle_event_command(self, player: Player, event_type: Optional[str]) -> str:
+        """Handle the event command - trigger random events"""
+        
+        # Trigger a random event
+        event = self.event_system.trigger_random_event(
+            event_type=event_type,
+            difficulty='medium',
+            context=f"Evento solicitado por {player.name}"
+        )
+        
+        if not event:
+            return "⚠️ Não foi possível criar evento no momento. Tente novamente mais tarde."
+        
+        # Add to game history
+        self.game_state.add_to_history("Evento", f"Evento {event['event_type']} disparado: {event['description']}", "system")
+        
+        return f"""
+🎭 **EVENTO DISPARADO!**
+
+🎯 **Tipo:** {event['event_type']}
+📝 **Descrição:** {event['description']}
+⚖️ **Dificuldade:** {event['difficulty']}
+🎲 **Resultado:** {event['outcome']}
+
+💬 **Use {acao} <sua reação> para responder ao evento!**
+            """.strip()
+    
+    def _handle_action_command(self, player: Player, action_description: str) -> str:
+        """Handle the action command - player describes their action"""
+        
+        if not action_description:
+            return "⚠️ Descreva sua ação. Use: {acao} <o que você vai fazer>"
+        
+        # Record player action
+        player_action = {
+            'player_id': player.id,
+            'player_name': player.name,
+            'action': action_description,
+            'timestamp': datetime.now().isoformat(),
+            'action_type': 'player_decision'
+        }
+        
+        self.player_actions_history.append(player_action)
+        
+        # Let AI Dungeon Master make a decision based on the action
+        ai_decision = self.ai_dungeon_master.make_campaign_decision(
+            situation=action_description,
+            player_actions=[player_action],
+            context=f"Ação do jogador {player.name}"
+        )
+        
+        # Add to game history
+        self.game_state.add_to_history("IA Mestre", f"Decisão da IA: {ai_decision['description']}", "gm")
+        
+        return f"""
+🎭 **AÇÃO DO JOGADOR PROCESSADA**
+
+👤 **Jogador:** {player.name}
+🎯 **Ação:** {action_description}
+
+🤖 **DECISÃO DA IA MESTRE:**
+{ai_decision['description']}
+
+💡 **Notas da IA:** {ai_decision.get('ai_master_notes', 'Nenhuma nota adicional')}
+
+🎲 **Continue usando {acao} <sua ação> para moldar a história!**
+            """.strip()
+    
+    def _handle_admin_command(self, player: Player, command: str, parameters: Optional[str]) -> str:
+        """Handle admin commands (admin only)"""
+        
+        # Check if player is admin (you can implement your own admin check)
+        # For now, we'll assume all players can use admin commands in this demo
+        admin_level = 'admin'  # In production, check player permissions
+        
+        # Parse parameters
+        param_list = parameters.split() if parameters else []
+        
+        # Execute admin command
+        result = self.server_admin.execute_admin_command(command, param_list, admin_level)
+        
+        # Add to game history
+        self.game_state.add_to_history("Admin", f"Comando admin '{command}' executado: {result['message']}", "system")
+        
+        return f"""
+🔧 **COMANDO ADMIN EXECUTADO**
+
+👤 **Executado por:** {player.name}
+⚙️ **Comando:** {command}
+📝 **Parâmetros:** {param_list if param_list else 'Nenhum'}
+
+✅ **Resultado:** {result['message']}
+
+⚠️ **Nível de Perigo:** {result['danger_level']}
+⏰ **Executado em:** {result['executed_at']}
+            """.strip()
+    
     def get_game_master_status(self) -> Dict[str, Any]:
         """Get current Game Master status with new systems"""
         return {
@@ -590,10 +866,23 @@ class GameMaster:
             'narrative_summary': self.narrative_engine.get_narrative_summary(),
             'world_summary': self.game_state.get_world_summary(),
             'procedural_stats': self.procedural_generator.get_generation_stats(),
-            'memory_stats': self.memory_manager.get_memory_statistics()
+            'memory_stats': self.memory_manager.get_memory_statistics(),
+            'dice_system': self.dice_system.get_statistics(),
+            'event_system': self.event_system.get_event_statistics(),
+            'ai_dungeon_master': self.ai_dungeon_master.get_campaign_status(),
+            'campaign_started': self.campaign_started,
+            'player_actions_count': len(self.player_actions_history)
         }
     
     def shutdown(self):
-        """Shutdown the Game Master"""
+        """Shutdown the Game Master and all subsystems"""
+        logger.info("Enhanced Game Master shutting down")
         self.is_active = False
-        logger.info("Enhanced Game Master shutdown")
+        
+        # Shutdown subsystems
+        if hasattr(self, 'ai_dungeon_master'):
+            self.ai_dungeon_master.shutdown()
+        if hasattr(self, 'server_admin'):
+            self.server_admin.shutdown()
+        
+        # Save final state if needed

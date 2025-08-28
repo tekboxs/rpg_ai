@@ -4,11 +4,23 @@ Um sistema de RPG multiplayer inovador que utiliza inteligência artificial para
 
 ## 🌟 Características Principais
 
-### 🧠 Game Master com IA
-- **Narrativa Dinâmica**: Gera descrições envolventes e contextualizadas
-- **Respostas Inteligentes**: Adapta-se às ações dos jogadores em tempo real
-- **Múltiplos Estilos**: Suporte para diferentes tipos de cenários (combate, exploração, diálogo)
+### 🤖 IA Mestre Autônoma
+- **Tomada de Decisões**: A IA toma decisões da campanha independentemente
+- **Análise de Situações**: Analisa contexto, ações dos jogadores e estado da campanha
+- **Adaptação Dinâmica**: Ajusta dificuldade e ritmo baseado no desempenho dos jogadores
 - **Consistência de Mundo**: Mantém coerência na história e no universo do jogo
+
+### 🎲 Sistema de Dados Completo
+- **Rolagem Avançada**: Suporte para d20, d6, d100, vantagem/desvantagem
+- **Sucessos Críticos**: Sistema completo de sucessos e falhas críticas
+- **Eventos Baseados em Dados**: Eventos de combate, tesouro e interação social
+- **Graus de Sucesso**: Sucesso excepcional, grande sucesso, sucesso, falha
+
+### 🎭 Geração Procedural de Histórias
+- **Histórias Únicas**: Cada campanha é diferente e contextualizada
+- **Localizações Variadas**: Florestas, montanhas, ruínas, vilas, cidades, cavernas
+- **Situações Iniciais**: Atmosfera dinâmica com clima, tempo e nível de perigo
+- **NPCs Contextuais**: Guias, mentores, informantes com motivações únicas
 
 ### 🏗️ Geração Procedural Avançada
 - **Localizações Dinâmicas**: Cria novas áreas do mundo conforme necessário
@@ -21,6 +33,12 @@ Um sistema de RPG multiplayer inovador que utiliza inteligência artificial para
 - **Relacionamentos Dinâmicos**: Desenvolvem laços com jogadores ao longo do tempo
 - **Personalidades Únicas**: Cada NPC tem traços e estilos de diálogo distintos
 - **Contexto Inteligente**: Evitam repetir informações já compartilhadas
+
+### 🔧 Sistema de Administração Avançado
+- **Comandos Administrativos**: Reiniciar, deletar dados, backup, restauração
+- **Backup Inteligente**: Sistema automático de backup antes de operações críticas
+- **Monitoramento Completo**: Status detalhado de todos os sistemas
+- **Gerenciamento de Logs**: Limpeza automática e manutenção de logs
 
 ### 🎮 Sistema de Jogo Robusto
 - **Gerenciamento de Jogadores**: Sistema completo de sessões e personagens
@@ -87,16 +105,28 @@ python -m src.network.client
 
 ## 🎮 Comandos do Jogo
 
-### Comandos de Narrativa
+### 🎭 Comandos de Narrativa e Campanha
 - `{narra} [tema]` - Solicita narração do Mestre sobre um tema específico
 - `{explorar}` - Explora detalhadamente a localização atual
+- `{historia} [estilo]` - Inicia/gerencia campanha com IA Mestre
+- `{acao} <descrição>` - Descreve ação para a IA Mestre processar
 
-### Comandos de Movimento
+### 🎲 Comandos de Dados e Eventos
+- `{dados} <tipo>` - Rola dados (ex: d20, 2d6, d100)
+- `{evento} [tipo]` - Dispara evento aleatório (combate, tesouro, social)
+
+### 🚶 Comandos de Movimento
 - `{mover} <direção>` - Move para uma direção específica (norte, sul, leste, oeste)
 
-### Comandos de Interação
+### 💬 Comandos de Interação
 - `{falar} <NPC>` - Inicia conversa com um NPC específico (com memória!)
 - `{combate} <alvo>` - Inicia uma sequência de combate
+
+### 🔧 Comandos Administrativos
+- `{admin} reiniciar` - Reinicia o servidor com backup automático
+- `{admin} deletar_dados` - Remove todos os dados (com backup de segurança)
+- `{admin} backup` - Cria backup completo do servidor
+- `{admin} status_servidor` - Mostra status detalhado do servidor
 
 ### Comandos do Sistema
 - `{missao}` - Gerencia missões e objetivos
@@ -164,20 +194,52 @@ memory:
 
 ## 🌟 Benefícios dos Novos Recursos
 
-1. **Mundo Infinito**: O mundo se expande conforme necessário
-2. **NPCs Inteligentes**: Personalidades únicas e memória persistente
-3. **Conteúdo Único**: Cada sessão é diferente
-4. **Imersão**: NPCs se lembram de você e desenvolvem relacionamentos
-5. **Escalabilidade**: Sistema que cresce com o uso
+### **Para Jogadores**
+- **Histórias Únicas**: Cada campanha é diferente e contextualizada
+- **Ações Significativas**: Suas escolhas moldam o mundo e a história
+- **Imersão Profunda**: Sistema de dados realista e eventos dinâmicos
+- **NPCs Inteligentes**: Personagens que se lembram e evoluem
+- **IA Mestre Responsiva**: Sistema que se adapta às suas ações
+
+### **Para Mestres**
+- **Automação Inteligente**: A IA toma decisões baseadas em regras e contexto
+- **Flexibilidade Total**: Sistema se adapta ao estilo de jogo automaticamente
+- **Redução de Preparação**: Conteúdo é gerado dinamicamente
+- **Foco na Narrativa**: Menos tempo com mecânicas, mais com história
+- **Decisões Contextuais**: IA analisa situações e toma decisões apropriadas
+
+### **Para Administradores**
+- **Controle Total**: Comandos administrativos poderosos e seguros
+- **Segurança de Dados**: Sistema de backup robusto e automático
+- **Monitoramento Completo**: Visibilidade de todos os sistemas
+- **Manutenção Simplificada**: Ferramentas para todas as operações
+- **Backup Inteligente**: Sistema que protege dados automaticamente
 
 ## 🚀 Próximos Passos
 
-- Teste os novos comandos de geração
-- Explore o mundo expandido
-- Converse com NPCs para desenvolver relacionamentos
-- Aceite missões dinâmicas
-- Monitore o crescimento do mundo
+### **Para Jogadores**
+- Use `{historia}` para iniciar uma nova campanha
+- Experimente `{acao} <sua ação>` para interagir com a IA Mestre
+- Role dados com `{dados} d20` para ações importantes
+- Dispare eventos com `{evento}` para situações dinâmicas
+
+### **Para Mestres**
+- Observe como a IA toma decisões baseadas nas ações dos jogadores
+- Monitore o progresso da campanha com `{status}`
+- Use `{admin} status_servidor` para ver estatísticas completas
+
+### **Para Administradores**
+- Teste os comandos administrativos com `{admin} backup`
+- Monitore o sistema com `{admin} status_servidor`
+- Use `{admin} limpar_logs` para manutenção regular
 
 ---
 
-**🎉 Agora o RPG AI oferece uma experiência verdadeiramente dinâmica e imersiva, com um mundo que cresce e NPCs que se lembram de você!**
+**🎉 Agora o RPG AI é um sistema verdadeiramente revolucionário com IA Mestre autônoma, sistema de dados completo e administração avançada!**
+
+## 📚 Documentação Completa
+
+- **[DEMO_AVANCADO.md](DEMO_AVANCADO.md)** - Demonstração dos recursos avançados
+- **[DEMO_NEW_FEATURES.md](DEMO_NEW_FEATURES.md)** - Recursos básicos implementados
+- **[TIMEOUT_CONFIG.md](TIMEOUT_CONFIG.md)** - Configurações de timeout
+- **[PROJECT_STATUS.md](PROJECT_STATUS.md)** - Status do projeto
