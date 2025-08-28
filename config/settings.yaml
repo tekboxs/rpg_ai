@@ -1,0 +1,35 @@
+# RPG AI Configuration
+
+# Server Settings
+server:
+  host: "0.0.0.0"
+  port: 5555
+  max_players: 8
+  timeout: 30
+
+# AI Settings
+ai:
+  endpoint: "http://localhost:5001/v1/chat/completions"
+  api_key: ""
+  model: "kb-gpt-neo"
+  max_tokens: 600
+  temperature: 0.8
+  max_context_messages: 15
+
+# Game Settings
+game:
+  session_timeout: 300  # 5 minutes
+  max_history: 100
+  auto_save_interval: 60  # seconds
+  
+# World Settings
+world:
+  default_location: "Taverna do Dragão Dourado"
+  starting_scenario: "Uma noite tempestuosa na taverna. O vento uiva pelas janelas e a lareira crepita suavemente."
+  
+# Logging
+logging:
+  level: "INFO"
+  file: "rpg_ai.log"
+  max_size: "10MB"
+  backup_count: 5
