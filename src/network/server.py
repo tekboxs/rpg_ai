@@ -8,7 +8,7 @@ from typing import Dict, Optional
 from pathlib import Path
 from ..core.game_state import GameState
 from ..core.player import Player, PlayerManager
-from ..game_master.master import GameMaster
+from ..game_master.simple_master import SimpleGameMaster
 from ..utils.logger import logger
 from ..utils.config import config
 
@@ -18,7 +18,7 @@ class RPGGameServer:
     def __init__(self):
         self.game_state = GameState()
         self.player_manager = PlayerManager(max_players=config.max_players)
-        self.game_master = GameMaster(self.game_state)
+        self.game_master = SimpleGameMaster(self.game_state)
         
         # Server state
         self.is_running = False
@@ -198,25 +198,31 @@ class RPGGameServer:
         location_desc = self.game_state.get_location_description(current_location)
         
         welcome_msg = f"""
-🎲 **BEM-VINDO AO RPG AI, {player.name}!**
+🎲 **BEM-VINDO AO RPG AI SIMPLIFICADO, {player.name}!**
 
 {location_desc}
 
-💡 **COMANDOS RÁPIDOS:**
+💡 **SISTEMA SIMPLIFICADO - COMANDOS RÁPIDOS:**
 - {{ajuda}} - Ver todos os comandos
-- {{status}} - Seu status atual
+- {{status}} - Seu status e da fila de ações
 - {{explorar}} - Explorar localização atual
-- {{narra}} - Solicitar narração do Mestre
+- {{fazer <ação>}} - Adicionar ação à fila
+- {{dizer <fala>}} - Adicionar fala à fila
+- {{historia <elemento>}} - Adicionar elemento narrativo à fila
+- {{mestre}} - Processar todas as ações em fila
 
-🎭 **ROLEPLAY:**
-- Digite qualquer texto para falar ou agir no jogo
-- Use comandos especiais para interagir com o sistema
-- Explore o mundo e crie sua própria história!
+🎭 **COMO FUNCIONA:**
+- Use {{fazer}}, {{dizer}} ou {{historia}} para suas ações
+- Todas ficam em fila até usar {{mestre}}
+- O {{mestre}} processa tudo e gera nova cena
+- Você tem controle total sobre a narrativa!
 
 🌍 **MUNDO ATUAL:**
 - Clima: {self.game_state.world.weather}
 - Hora: {self.game_state.world.time_of_day}
 - Jogadores online: {len(self.player_manager.players)}
+
+🎯 **DICA:** Comece com {{fazer explorar a área}} e depois use {{mestre}}!
 
 Divirta-se e boa aventura!
         """.strip()

@@ -74,18 +74,14 @@ Exemplos de uso:
             print()
 
             # Show new system information
-            print("🆕 Sistemas Avançados Ativados:")
-            print(
-                f"   🏗️  Geração Procedural: {'✅' if config.procedural_enabled else '❌'}"
-            )
-            print(f"   🧠 Memória de NPCs: {'✅' if config.memory_enabled else '❌'}")
-            print(f"   🎲 Sistema de Dados: ✅")
-            print(f"   🎭 Sistema de Eventos: ✅")
-            print(f"   🤖 IA Mestre Autônoma: ✅")
+            print("🆕 Sistema Simplificado Ativado:")
+            print(f"   📝 Sistema de Fila de Ações: ✅")
+            print(f"   🎭 Controle Total do Jogador: ✅")
+            print(f"   🤖 IA Assistente (não controladora): ✅")
             print(f"   🔧 Administração do Servidor: ✅")
             print(f"   🎨 Criatividade AI: {config.generation_creativity:.1f}")
-            print(f"   🌍 Expansão Mundial: {config.world_expansion_chance:.1f}")
-            print(f"   💾 Tamanho da Memória: {config.max_memory_size} conversas")
+            print(f"   🌍 Mundo Dinâmico: ✅")
+            print(f"   💾 Sistema de Histórico: ✅")
             print()
 
             start_server(args.host, args.port)

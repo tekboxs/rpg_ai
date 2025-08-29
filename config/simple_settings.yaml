@@ -1,0 +1,56 @@
+# RPG AI Simplified Configuration
+
+# Server Settings
+server:
+  host: "0.0.0.0"
+  port: 5555
+  max_players: 8
+  timeout: 0  # 0 = sem timeout (ilimitado), > 0 = timeout em segundos
+  connection_timeout: 0  # 0 = sem timeout (ilimitado), > 0 = timeout em segundos
+  player_name_timeout: 0  # 0 = sem timeout (ilimitado), > 0 = timeout em segundos
+
+# AI Settings (Simplified - Assistant role only)
+ai:
+  enabled: true  # Habilita/desabilita o sistema de IA
+  endpoint: "http://localhost:5001/v1/chat/completions"
+  api_key: ""
+  model: "kb-gpt-neo"
+  max_tokens: 800  # Reduced for faster responses
+  temperature: 0.7  # Slightly lower for more consistent responses
+  max_context_messages: 10  # Reduced context for simplicity
+  request_timeout: 0  # 0 = sem timeout (ilimitado), > 0 = timeout em segundos
+  connection_timeout: 0  # 0 = sem timeout (ilimitado), > 0 = timeout em segundos
+
+# Game Settings
+game:
+  session_timeout: 0  # 0 = sem timeout (ilimitado), > 0 = timeout em minutos
+  max_history: 50  # Reduced for simplicity
+  auto_save_interval: 120  # seconds - less frequent saves
+  
+# World Settings
+world:
+  default_location: "Taverna do Dragão Dourado"
+  starting_scenario: "Uma noite tempestuosa na taverna. O vento uiva pelas janelas e a lareira crepita suavemente."
+  
+# Action Queue Settings
+action_queue:
+  enabled: true
+  max_actions_per_queue: 20  # Maximum actions before forcing processing
+  processing_order: "chronological"  # chronological, priority, random
+  tie_breaker: "timestamp"  # timestamp, player_order, roll
+  auto_process_threshold: 10  # Auto-process when this many actions are queued
+  
+# Simplified System Settings
+simplified:
+  player_narrative_control: true  # Players control the story
+  ai_assistant_mode: true  # AI helps but doesn't control
+  immediate_feedback: true  # Give feedback on actions added to queue
+  story_context_tracking: true  # Track story context for coherence
+  conflict_resolution: "chronological"  # How to resolve action conflicts
+  
+# Logging
+logging:
+  level: "INFO"
+  file: "rpg_ai_simple.log"
+  max_size: "5MB"  # Smaller log files
+  backup_count: 3  # Fewer backups
